@@ -4,40 +4,79 @@ var world = new (function() {
 	var radars = [];
 	var missiles = [];
 
+	var worldTime = 0;
 	var groups = [ launchers, interceptors, radars, missiles ];
+	
+	// population hotspots aka cities, players should attack/protect them in order to win 
+	var population = [	{ name: 'Berlin', x: 680, y: 170, r: 20, faction: 'europe' },
+						{ name: 'Chicago', x: 260, y: 170, r: 20, faction: 'namerica' },
+						{ name: 'Cape Town', x: 710, y: 470, r: 20, faction: 'africa' },
+						{ name: 'Bejing', x: 1040, y: 250, r: 20, faction: 'asia' },
+						{ name: 'Tokyo', x: 1140, y: 220, r: 20, faction: 'asia' },
+						{ name: 'Rio de janeiro', x: 490, y: 400, r: 20, faction: 'lamerica' }];
 	
 	// store/restore
 	
 	this.store = function() {
-		return groups; 
+		return { groups: groups, population: population, worldTime: worldTime }; 
 	}
 	
 	this.restore = function(state) {
-		groups = state;
+		worldTime = state.worldTime;
+
+		groups = state.groups;
 		launchers = groups[0];
 		interceptors = groups[1];
 		radars = groups[2];
 		missiles = groups[3];
+		
+		population = state.population;
 	}
 
 	var lastUpdate = new Date().getTime();
 	function update() {
 		var dt = new Date().getTime() - lastUpdate;			
 		lastUpdate += dt;
+		worldTime += dt;
 		
 		missiles.some(function(missile) {
 			missile.ft += dt / 1000;
-			if(missile.ft < 1) {
+			if(missile.ft < 100) {
 				if(!missile.V)
 					missile.V = VMath.normalize([ missile.opts.tx - missile.x, missile.opts.ty - missile.y ]);
 				var V = missile.V;
-				missile.x = missile.x + V[0]*dt; 
-				missile.y = missile.y + V[1]*dt;
+				missile.x = missile.x + V[0]*dt/40; 
+				missile.y = missile.y + V[1]*dt/40;
+				
+				if(VMath.length([ missile.opts.tx - missile.x, missile.opts.ty - missile.y ]) < 10 && !missile.dead) {
+					missile.V = [0, 0]
+					missile.dead = true;
+					population.some(function(hotspot) {
+						if(VMath.distance([missile.x, missile.y], [hotspot.x, hotspot.y]) < 10)
+							hotspot.r *= 0.8;
+					});
+				}
 			}			
 		});
 	}
 
 	view.onAnimate(update);
+	
+	// constraint check
+	
+	this.canAdd = function(type, x, y, opts) {
+		// can add new military building whenever it is not more far away than 100 from my faction hotspots and no closer than 100 to enemy hotspots
+		if(type == 'launcher' || type == 'radar') {
+			return population.some(function(hotspot) {
+				return hotspot.faction == opts.faction && 
+						VMath.distance([x, y], [hotspot.x, hotspot.y]) < 100;
+			}) && population.every(function(hotspot) {
+				return hotspot.faction == opts.faction || 
+				VMath.distance([x, y], [hotspot.x, hotspot.y]) > 100;
+				})
+		} else
+			return true;
+	}
 	
 	// control
 	
@@ -67,16 +106,27 @@ var world = new (function() {
 	}
 
 	// rendering
+	
+	this.visibilityCheck = function(object) {
+		return true;
+	}
 
 	this.render = function() {
 		groups.some(function(group) {
 			group.some(function(object) {
+				if(object.dead || !world.visibilityCheck)
+					return;
+				
 				var color = object.selected ? 'yellow' : 'red';
 				if(object.shape == 'rect')
 					view.fillRect(object.x - object.width/2, object.y - object.height/2, object.width, object.height, color);
 				else if(object.shape == 'arc')
 					view.fillArc(object.x, object.y, object.width / 2, color);
 			});
+		});
+		
+		population.some(function(hotspot) {
+			view.fillArc(hotspot.x, hotspot.y, hotspot.r, 'white');
 		});
 	}
 	

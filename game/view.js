@@ -13,7 +13,7 @@ var view = new (function() {
 
 	this.on = function(event, handler) {
 		return canvas.addEventListener(event, function(event) {
-			event.eX = event.clientX - canvas.offsetLeft, event.eY = event.clientY - canvas.offsetTop;					
+			event.eX = event.layerX, event.eY = event.layerY;					
 			handler(event);
 		}, false);		
 			

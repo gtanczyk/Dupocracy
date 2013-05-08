@@ -82,8 +82,7 @@ var dupocracy = new (function() {
 	init.then(function(connection) {
 
 		connection.on('gameStart', function() {
-		});		
-		
+		});				
 		
 		connection.on('slotTaken', function(header, body, data) {
 			var slot = JSON.parse(body);
@@ -98,7 +97,8 @@ var dupocracy = new (function() {
 		
 		connection.hon('makeObject', function(header, body, data, clientID) {
 			body = JSON.parse(body);
-			connection.broadcast('newObject', JSON.stringify(body));
+			if(world.canAdd(body.type, body.x, body.y, body.opts))
+				connection.broadcast('newObject', JSON.stringify(body));
 		});					
 	
 		// game control
@@ -110,18 +110,18 @@ var dupocracy = new (function() {
 				event.preventDefault();
 	
 				if(selection.length > 0)
-					ui.contextMenu(event.clientX, event.clientY, [['attack', 'Attack']]).then(function(option) {
+					ui.contextMenu(event.clientX, event.layerY, [['attack', 'Attack']]).then(function(option) {
 						if(option == 'attack') {
 							selection.some(function(object) {
 								if(object.type == 'launcher')
 									connection.toHost("makeObject", JSON.stringify({ type: 'missile', x: object.x, y: object.y, 
-										opts: { tx: event.eX, ty: event.eY } }));
+																					 opts: { tx: event.eX, ty: event.eY, faction: mySlot } }));
 							});							
 						}
 					});
 				else
-					ui.contextMenu(event.clientX, event.clientY, [['launcher', 'Launcher'], ['radar', 'Radar']]).then(function(option) {
-						connection.toHost("makeObject", JSON.stringify({ type: option, x: event.eX, y: event.eY }));
+					ui.contextMenu(event.clientX, event.layerY, [['launcher', 'Launcher'], ['radar', 'Radar']]).then(function(option) {
+						connection.toHost("makeObject", JSON.stringify({ type: option, x: event.eX, y: event.eY, opts: { faction: mySlot } }));
 					});
 			});
 			
@@ -131,8 +131,8 @@ var dupocracy = new (function() {
 			
 			view.on('click', function(event) {
 				if(!mouseMoved && !world.query(event.eX, event.eY, 8).some(function(object) {
-					if(selection.indexOf(object)==-1)
-						selection.push(object.selected = true && object);
+					if(selection.indexOf(object)==-1 && object.opts.faction == mySlot)
+						selection.push((object.selected = true) && object);
 					return true;
 				}))
 					selection = selection.filter(function(object) {
@@ -157,8 +157,8 @@ var dupocracy = new (function() {
 				
 				if(mousePressed) {			
 					if(!world.query(event.eX, event.eY, 8, rect).every(function(object) {
-						if(selection.indexOf(object)==-1)
-							selection.push(object.selected = true && object);				
+						if(selection.indexOf(object)==-1 && object.opts.faction == mySlot)
+							selection.push((object.selected = true) && object);				
 						return true;
 					}))					
 						selection = selection.filter(function(object) {
