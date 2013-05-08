@@ -1,67 +1,13 @@
 var dupocracy = new (function() {
-	var connect = new Deferred();
+	var connect = new Deferred(true);
 	var init = new Deferred();
-	var control = new Deferred();
+	var control = new Deferred(true);
 
-	var self;
-
-	this.initSelf = function(dialog) {
-		init.then(function(connection) {
-			connection.toHost('registerSelf', dialog.querySelector('input').value);
-			var yourSelf = connection.on('yourSelf', function(header, body, data, listener) {
-				self = body;
-				dialog.remove();
-				document.querySelector('body>.mask').remove();
-				
-				// clear listener
-				nameTaken.remove();
-				
-				joinGame();
-			}, {single: true})
-			var nameTaken = connection.on('nameTaken', function(header, body, data, listener) {
-				dialog.querySelector('.error').innerHTML = 'This name is already taken by other player.'
-				// clear listener
-				yourSelf.remove();
-			}, {single: true});			
-		});
-	}
-	
-	function joinGame() {
-		init.then(function(connection) {
-			var freeSlots = factions.filter(function(faction) {
-				return !players[faction];
-			});
-			freeSlots.sort(function() {
-				return Math.random() - Math.random()
-			});
-		
-			connection.toHost('claimSlot', freeSlots[0]);
-		});
-	}
-	
-	// status
-
-	var GS_INIT = 1 << 1, GS_DEFCON2 = 1 << 2, GS_DEFCON1 = 1 << 3, GS_DEFCON0 = 1 << 4;
-	var E_INIT = 1 << 1, E_OVER = 1 << 2;
-
-	var gameState = new StateMachine();
-	gameState.bitMode(true, true);
-	
-	gameState.feed(GS_INIT, E_INIT, GS_DEFCON2, function() {
-		console.log('dupa')
-	});
-	
-	gameState.init(GS_INIT);
-	
-	var factions = [ 'europe', 'africa', 'namerica', 'lamerica', 'asia', 'russia' ];
-
-	var players = {};
-
-	// client
+	var factionWidget
 
 	init.then(function(connection) {
-
-		// networking
+		
+		factionWidget = new ui.FactionWidget(factions);	
 
 		// ask for game state when you are in client mode
 		connection.toHost('getGameState');
@@ -69,6 +15,31 @@ var dupocracy = new (function() {
 			var gameState = JSON.parse(body);
 			players = gameState.players;
 			world.restore(gameState.world);
+			
+			Object.keys(players).some(function(slot) {
+				factionWidget.markSlot(slot, players[slot].name);
+			});
+			
+			ui.nameDialog(getFreeSlots()).then(function(name, slot, result) {
+				connection.toHost('registerSelf', name);
+				var yourSelf = connection.on('yourSelf', function(header, body, data, listener) {
+					result.resolve(true);
+					
+					// clear listener
+					nameTaken.remove();
+					
+					if(slot)
+						joinGame(slot).then(function(slot) {
+							if(slot)
+								control.resolve(slot);
+						});
+				}, {single: true})
+				var nameTaken = connection.on('nameTaken', function(header, body, data, listener) {
+					result.resolve(false, 'This name is already taken by other player.');
+					// clear listener
+					yourSelf.remove(false);
+				}, {single: true});			
+			});
 		});
 		connection.hon('getGameState', function(header, body, data, clientID) {
 			var gameState = {
@@ -77,19 +48,47 @@ var dupocracy = new (function() {
 			}
 			
 			connection.toClient(clientID, 'newGameState', JSON.stringify(gameState))
+		});				
+	});
+	
+	function getFreeSlots() {
+		return factions.filter(function(faction) {
+			return !players[faction];
 		});
+	}	
+	
+	function joinGame(slot) {
+		var result = new Deferred();
+		
+		connect.then(function(connection) {
+			connection.toHost('claimSlot', slot);
+			connection.on('yourSlot', function(header, body, data) {
+				result.resolve(body);
+			}, { single: true });
+			connection.on('slotAlreadyTaken', function() {
+				result.resolve(false);
+			});
+		});
+		
+		return result;
+	}	
+	
+	var factions = [ 'europe', 'africa', 'namerica', 'lamerica', 'asia', 'russia' ];		
+
+	var players = {};
+
+	// client
+
+	init.then(function(connection) {
 
 		connection.on('gameStart', function() {
 		});		
-
-		connection.on('yourSlot', function(header, body, data) {
-			mySlot = body;
-			control.resolve(body);
-		});
+		
 		
 		connection.on('slotTaken', function(header, body, data) {
 			var slot = JSON.parse(body);
 			players[slot.id] = slot;
+			factionWidget.markSlot(slot.id, slot.name);
 		});
 		
 		connection.on('newObject', function(header, body, data) {
@@ -111,18 +110,18 @@ var dupocracy = new (function() {
 				event.preventDefault();
 	
 				if(selection.length > 0)
-					ui.contextMenu(event.x, event.y, [['attack', 'Attack']]).then(function(option) {
+					ui.contextMenu(event.clientX, event.clientY, [['attack', 'Attack']]).then(function(option) {
 						if(option == 'attack') {
 							selection.some(function(object) {
 								if(object.type == 'launcher')
 									connection.toHost("makeObject", JSON.stringify({ type: 'missile', x: object.x, y: object.y, 
-										opts: { tx: event.x, ty: event.y } }));
+										opts: { tx: event.eX, ty: event.eY } }));
 							});							
 						}
 					});
 				else
-					ui.contextMenu(event.x, event.y, [['launcher', 'Launcher'], ['radar', 'Radar']]).then(function(option) {
-						connection.toHost("makeObject", JSON.stringify({ type: option, x: event.x, y: event.y }));
+					ui.contextMenu(event.clientX, event.clientY, [['launcher', 'Launcher'], ['radar', 'Radar']]).then(function(option) {
+						connection.toHost("makeObject", JSON.stringify({ type: option, x: event.eX, y: event.eY }));
 					});
 			});
 			
@@ -131,7 +130,7 @@ var dupocracy = new (function() {
 			var mouseMoved, mousePressed, pressX, pressY;
 			
 			view.on('click', function(event) {
-				if(!mouseMoved && !world.query(event.x, event.y, 8).some(function(object) {
+				if(!mouseMoved && !world.query(event.eX, event.eY, 8).some(function(object) {
 					if(selection.indexOf(object)==-1)
 						selection.push(object.selected = true && object);
 					return true;
@@ -144,8 +143,8 @@ var dupocracy = new (function() {
 			view.on('mousedown', function(event) {
 				mouseMoved = false;
 				mousePressed = true;
-				pressX = event.x;
-				pressY = event.y;
+				pressX = event.eX;
+				pressY = event.eY;
 			});		
 			
 			view.on('mouseup', function(event) {
@@ -154,10 +153,10 @@ var dupocracy = new (function() {
 			
 			view.on('mousemove', function(event) {
 				mouseMoved = true;
-				var rect = mousePressed && [pressX, pressY, event.x, event.y];
+				var rect = mousePressed && [pressX, pressY, event.eX, event.eY];
 				
 				if(mousePressed) {			
-					if(!world.query(event.x, event.y, 8, rect).every(function(object) {
+					if(!world.query(event.eX, event.eY, 8, rect).every(function(object) {
 						if(selection.indexOf(object)==-1)
 							selection.push(object.selected = true && object);				
 						return true;
@@ -166,7 +165,7 @@ var dupocracy = new (function() {
 							object.selected = false;
 						});							
 				} else
-					view.pointer(world.query(event.x, event.y, 8).length > 0);
+					view.pointer(world.query(event.eX, event.eY, 8).length > 0);
 					
 			});
 			
@@ -204,6 +203,19 @@ var dupocracy = new (function() {
 				if(Object.keys(players).length >= 1)
 					connection.broadcast('gameStart');
 			}			
+		});		
+		
+		connection.hon('leave', function(header, body, data, clientID) {
+			Object.keys(players).some(function(faction) {
+				if(players[faction].clientID == clientID)
+					connection.broadcast('clearSlot', faction);
+				
+			})
+		});
+		
+		connection.on('clearSlot', function(header, body) {
+			factionWidget.markSlot(body);
+			delete players[body];
 		});		
 		
 		init.resolve(connection);

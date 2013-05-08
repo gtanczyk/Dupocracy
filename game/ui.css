@@ -2,6 +2,7 @@ body {
 	margin: 0;
 	padding: 0;
 	font-family: Impact;
+	background: black;
 }
 
 .mask {
@@ -11,6 +12,11 @@ body {
 	height: 100%;
 	top: 0px;
 	left: 0px;
+}
+
+body>canvas {
+	margin: 0 auto;
+	display: block;
 }
 
 /* prompt dialog */
@@ -46,4 +52,18 @@ body {
 	color: white;
 	border: white;
 	cursor: pointer;
+}
+
+/* faction widget */
+
+.factionWidget {
+	position: fixed;
+	top: 0px;
+	left: 0px;
+	color: white;
+	width: 200px;
+}
+
+.factionWidget span {
+	font-weight: normal;
 }

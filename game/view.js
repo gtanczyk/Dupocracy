@@ -12,7 +12,11 @@ var view = new (function() {
 	// events
 
 	this.on = function(event, handler) {
-		return canvas.addEventListener(event, handler, false);		
+		return canvas.addEventListener(event, function(event) {
+			event.eX = event.clientX - canvas.offsetLeft, event.eY = event.clientY - canvas.offsetTop;					
+			handler(event);
+		}, false);		
+			
 	}
 	
 	// pointer control

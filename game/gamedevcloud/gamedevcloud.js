@@ -43,8 +43,9 @@
 
 	// deferred
 
-	function Deferred() {
+	function Deferred(single) {
 		this.listeners = [];
+		this.single = single;
 	}
 
 	Deferred.prototype.then = function(fn) {
@@ -55,6 +56,9 @@
 	}
 
 	Deferred.prototype.resolve = function() {
+		if(this.result && this.single)
+			return;
+			
 		var result = this.result = arguments;
 		this.listeners.some(function(listener) {
 			listener.apply(null, result);
