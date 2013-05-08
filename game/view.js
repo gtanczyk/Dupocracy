@@ -5,8 +5,10 @@
 })();
 
 var view = new (function() {
-	var viewWidth = window.innerWidth, viewHeight = window.innerHeight;
+	var viewWidth, viewHeight;
 	
+	var canvas = document.createElement('canvas');	
+
 	// events
 
 	this.on = function(event, handler) {
@@ -19,16 +21,22 @@ var view = new (function() {
 		canvas.style.cursor = enabled ? 'pointer' : null;
 	}	
 	
+	// asset loading
+	// start doing stuff when background is loaded
+	terrain.dimensions.then(function(width, height) {
+		canvas.width = viewWidth = width;
+		canvas.height = viewHeight = height;
+		
+		document.body.appendChild(canvas);
+		
+		ctx = canvas.getContext('2d');
+		
+		requestAnimationFrame(animationFrame);
+	});
+			
+	
 	// canvas util
 
-	var canvas = document.createElement('canvas');
-	canvas.width = viewWidth;
-	canvas.height = viewHeight;
-	
-	document.body.appendChild(canvas);
-	
-	ctx = canvas.getContext('2d');
-	
 	var clear = this.clear = function() {
 		ctx.fillStyle = 'black';
 		ctx.fillRect(0, 0, viewWidth, viewHeight);
@@ -81,6 +89,5 @@ var view = new (function() {
 
 		requestAnimationFrame(animationFrame);
 	}
-	requestAnimationFrame(animationFrame);
 	
 })();

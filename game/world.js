@@ -5,14 +5,35 @@ var world = new (function() {
 	var missiles = [];
 
 	var groups = [ launchers, interceptors, radars, missiles ];
+	
+	// store/restore
+	
+	this.store = function() {
+		return groups; 
+	}
+	
+	this.restore = function(state) {
+		groups = state;
+		launchers = groups[0];
+		interceptors = groups[1];
+		radars = groups[2];
+		missiles = groups[3];
+	}
 
 	var lastUpdate = new Date().getTime();
 	function update() {
 		var dt = new Date().getTime() - lastUpdate;			
 		lastUpdate += dt;
 		
-		missiles.some(function() {
-			missiles.ft += dt; 
+		missiles.some(function(missile) {
+			missile.ft += dt / 1000;
+			if(missile.ft < 1) {
+				if(!missile.V)
+					missile.V = VMath.normalize([ missile.opts.tx - missile.x, missile.opts.ty - missile.y ]);
+				var V = missile.V;
+				missile.x = missile.x + V[0]*dt; 
+				missile.y = missile.y + V[1]*dt;
+			}			
 		});
 	}
 
@@ -20,8 +41,11 @@ var world = new (function() {
 	
 	// control
 	
-	this.add = function(type, x, y) {
-		(type == 'launcher' ? launchers : radars).push({ type: type, x: x, y: y, width: 16, height: 16, shape: (type == 'launcher' ? 'rect' : 'arc') });		
+	this.add = function(type, x, y, opts) {
+		(type == 'launcher' ? launchers : 
+		 type == 'radar' ? radars :
+		 type == 'missile' ? missiles :		 
+			[]).push({ type: type, x: x, y: y, width: 16, height: 16, shape: (type == 'launcher' ? 'rect' : 'arc'), ft: 0, opts: opts });		
 	};
 	
 	// query
@@ -55,4 +79,5 @@ var world = new (function() {
 			});
 		});
 	}
+	
 })();

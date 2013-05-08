@@ -1,4 +1,5 @@
 var dupocracy = new (function() {
+	var connect = new Deferred();
 	var init = new Deferred();
 	var control = new Deferred();
 
@@ -62,6 +63,22 @@ var dupocracy = new (function() {
 
 		// networking
 
+		// ask for game state when you are in client mode
+		connection.toHost('getGameState');
+		connection.on('newGameState', function(header, body) {
+			var gameState = JSON.parse(body);
+			players = gameState.players;
+			world.restore(gameState.world);
+		});
+		connection.hon('getGameState', function(header, body, data, clientID) {
+			var gameState = {
+				players: players,
+				world: world.store()
+			}
+			
+			connection.toClient(clientID, 'newGameState', JSON.stringify(gameState))
+		});
+
 		connection.on('gameStart', function() {
 		});		
 
@@ -77,7 +94,7 @@ var dupocracy = new (function() {
 		
 		connection.on('newObject', function(header, body, data) {
 			body = JSON.parse(body);
-			world.add(body.type, body.x, body.y);
+			world.add(body.type, body.x, body.y, body.opts);
 		});
 		
 		connection.hon('makeObject', function(header, body, data, clientID) {
@@ -98,7 +115,8 @@ var dupocracy = new (function() {
 						if(option == 'attack') {
 							selection.some(function(object) {
 								if(object.type == 'launcher')
-									connection.toHost("makeObject", JSON.stringify({ type: 'missile', x: object.x, y: object.y, tx: event.x, ty: event.y }));
+									connection.toHost("makeObject", JSON.stringify({ type: 'missile', x: object.x, y: object.y, 
+										opts: { tx: event.x, ty: event.y } }));
 							});							
 						}
 					});
@@ -157,7 +175,7 @@ var dupocracy = new (function() {
 
 	// host
 
-	init.then(function(connection) {
+	connect.then(function(connection) {
 		var clients = [];
 
 		connection.hon('registerSelf', function(header, body, data, clientID) {
@@ -187,6 +205,8 @@ var dupocracy = new (function() {
 					connection.broadcast('gameStart');
 			}			
 		});		
+		
+		init.resolve(connection);
 	});
 
 	// get connection
@@ -203,7 +223,9 @@ var dupocracy = new (function() {
 						console.log("debug:", arguments)
 					});
 
-					init.resolve(connection);
+					connection.on(/(.*)/, function() {
+						connect.resolve(connection);
+					}, { single: true });
 				});
 			});
 })();
