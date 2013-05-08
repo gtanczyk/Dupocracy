@@ -1,5 +1,5 @@
 var world = new (function() {
-	var launchers = [{x: 100, y: 100, width: 50, height: 50}];
+	var launchers = [];
 	var interceptors = [];
 	var radars = [];
 	var missiles = [];
