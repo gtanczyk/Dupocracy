@@ -21,7 +21,7 @@ var world = new (function() {
 	// control
 	
 	this.add = function(type, x, y) {
-		(type == 'launcher' ? launchers : radars).push({ x: x, y: y, width: 16, height: 16, shape: (type == 'launcher' ? 'rect' : 'arc') });		
+		(type == 'launcher' ? launchers : radars).push({ type: type, x: x, y: y, width: 16, height: 16, shape: (type == 'launcher' ? 'rect' : 'arc') });		
 	};
 	
 	// query

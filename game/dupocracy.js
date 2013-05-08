@@ -76,68 +76,83 @@ var dupocracy = new (function() {
 		});
 		
 		connection.on('newObject', function(header, body, data) {
-			
+			body = JSON.parse(body);
+			world.add(body.type, body.x, body.y);
 		});
 		
-	});
+		connection.hon('makeObject', function(header, body, data, clientID) {
+			body = JSON.parse(body);
+			connection.broadcast('newObject', JSON.stringify(body));
+		});					
 	
-	// game control
-
-	control.then(function(mySlot) {
-		var selection = [];
+		// game control
 	
-		view.on('contextmenu', function(event) {
-			event.preventDefault();
-
-			if(selection.length > 0)
-				ui.contextMenu(event.x, event.y, [['attack', 'Attack']]).then(function() {
-				});
-			else
-				ui.contextMenu(event.x, event.y, [['launcher', 'Launcher'], ['radar', 'Radar']]).then(function(option) {
-					world.add(option, event.x, event.y);
-				});
-		});
+		control.then(function(mySlot) {
+			var selection = [];
 		
-		var mouseMoved, mousePressed, pressX, pressY;
-		
-		view.on('click', function(event) {
-			if(!mouseMoved && !world.query(event.x, event.y, 8).some(function(object) {
-				selection.push(object.selected = true && object);
-				return true;
-			}))
-				selection = selection.filter(function(object) {
-					object.selected = false;
-				});	
-		});
-		
-		view.on('mousedown', function(event) {
-			mouseMoved = false;
-			mousePressed = true;
-			pressX = event.x;
-			pressY = event.y;
-		});		
-		
-		view.on('mouseup', function(event) {
-			mousePressed = false;
-		});		
-		
-		view.on('mousemove', function(event) {
-			mouseMoved = true;
-			var rect = mousePressed && [pressX, pressY, event.x, event.y];
+			view.on('contextmenu', function(event) {
+				event.preventDefault();
+	
+				if(selection.length > 0)
+					ui.contextMenu(event.x, event.y, [['attack', 'Attack']]).then(function(option) {
+						if(option == 'attack') {
+							selection.some(function(object) {
+								if(object.type == 'launcher')
+									connection.toHost("makeObject", JSON.stringify({ type: 'missile', x: object.x, y: object.y, tx: event.x, ty: event.y }));
+							});							
+						}
+					});
+				else
+					ui.contextMenu(event.x, event.y, [['launcher', 'Launcher'], ['radar', 'Radar']]).then(function(option) {
+						connection.toHost("makeObject", JSON.stringify({ type: option, x: event.x, y: event.y }));
+					});
+			});
 			
-			if(mousePressed) {			
-				if(!world.query(event.x, event.y, 8, rect).every(function(object) {				
-					selection.push(object.selected = true && object);				
+			// unit selection
+			
+			var mouseMoved, mousePressed, pressX, pressY;
+			
+			view.on('click', function(event) {
+				if(!mouseMoved && !world.query(event.x, event.y, 8).some(function(object) {
+					if(selection.indexOf(object)==-1)
+						selection.push(object.selected = true && object);
 					return true;
-				}))					
+				}))
 					selection = selection.filter(function(object) {
 						object.selected = false;
-					});							
-			} else
-				view.pointer(world.query(event.x, event.y, 8).length > 0);
+					});	
+			});
+			
+			view.on('mousedown', function(event) {
+				mouseMoved = false;
+				mousePressed = true;
+				pressX = event.x;
+				pressY = event.y;
+			});		
+			
+			view.on('mouseup', function(event) {
+				mousePressed = false;
+			});		
+			
+			view.on('mousemove', function(event) {
+				mouseMoved = true;
+				var rect = mousePressed && [pressX, pressY, event.x, event.y];
 				
+				if(mousePressed) {			
+					if(!world.query(event.x, event.y, 8, rect).every(function(object) {
+						if(selection.indexOf(object)==-1)
+							selection.push(object.selected = true && object);				
+						return true;
+					}))					
+						selection = selection.filter(function(object) {
+							object.selected = false;
+						});							
+				} else
+					view.pointer(world.query(event.x, event.y, 8).length > 0);
+					
+			});
+			
 		});
-		
 	});
 
 	// host
