@@ -48,16 +48,16 @@
 	}
 
 	Deferred.prototype.then = function(fn) {
-		if (this.result)
-			fn(this.result);
+		if (typeof this.result != 'undefined')
+			fn.apply(null, this.result);
 		else
 			this.listeners.push(fn);
 	}
 
-	Deferred.prototype.resolve = function(result) {
-		this.result = result || true;
+	Deferred.prototype.resolve = function() {
+		var result = this.result = arguments;
 		this.listeners.some(function(listener) {
-			listener(result);
+			listener.apply(null, result);
 		});
 	}
 

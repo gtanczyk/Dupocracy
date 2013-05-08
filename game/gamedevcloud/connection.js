@@ -1,6 +1,10 @@
 (function(global) {
 	function Connection(socketURL) {
 		this.socketURL = socketURL;
+		
+		this.onListeners = [];
+		
+		this.onListeners.x = Math.random();
 
 		this.on(/^(host|client)$/, function(header, body) {
 			if (header == 'host')
@@ -48,12 +52,10 @@
 	Connection.prototype.log = function() {
 	}	
 
-	Connection.prototype.onListeners = [],
-
 	Connection.prototype.receive = function(header, body, data) {
 		this.onListeners = this.onListeners.filter(function(listener) {
-			if (header.match(listener.filter)) {
-				listener.callback(header, body, data);
+			if (header.match(listener.filter)) {				
+				setTimeout(listener.callback.bind(null, header, body, data));
 				return !listener.opts.single;
 			} else
 				return true;
@@ -74,7 +76,7 @@
 	};
 
 	Connection.prototype.hon = function(filter, callback) {
-		this.onListeners.push({
+		var listener = {
 			filter : /^(\d+)$/,
 			opts: {},
 			callback : function(header, body, data) {
@@ -84,8 +86,13 @@
 					return;
 				var body = body.substring(body.indexOf(':') + 1);
 				callback(header, body, data, clientID);
-			}
-		});
+			},
+			remove: function() {
+				this.onListeners.splice(this.onListeners.indexOf(listener), 1)
+			}.bind(this)	
+		};
+		this.onListeners.push(listener);
+		return listener;
 	};
 
 	Connection.prototype.broadcast = function(header, body, callback) {
@@ -106,7 +113,6 @@
 						+ (body != null ? body : ''));
 			}.bind(this), 0);
 		else if (this.socket)
-
 			this.socket.send("host:" + header + ":"
 					+ (body != null ? body : ''));
 

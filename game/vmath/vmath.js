@@ -162,6 +162,13 @@
 
 				if (T[0] <= 1 && T[1] <= 1)
 					return T;
+			},
+		
+			// rect utils
+			insideRect: function(P, rect) {
+				return !(P[0] < rect[0] || P[0] > rect[2] || P[1] < rect[1] || P[3] > rect[3]);
 			}
+			
 		}
+		
 })(this);
