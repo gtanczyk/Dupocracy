@@ -1,0 +1,41 @@
+<html>
+    <head>
+        <title>Dupocracy</title>
+        <link rel="stylesheet" href="ui.css" type="text/css" media="all" />
+    </head>
+    <body>
+        <script type="text/javascript" src="vmath/vmath.js">
+        </script>
+        <script type="text/javascript" src="statemachinka/statemachine.js">
+        </script>
+        <script type="text/javascript" src="gamedevcloud/gamedevcloud.js">
+        </script>
+        <script type="text/javascript" src="gamedevcloud/connection.js">
+        </script>
+        <script type="text/javascript" src="init.js">
+        </script>
+        <script type="text/javascript" src="resources.js">
+        </script>
+        <script type="text/javascript" src="factoring.js">
+        </script>
+        <script type="text/javascript" src="terrain.js">
+        </script>
+        <script type="text/javascript" src="renderer.js">
+        </script>
+        <script type="text/javascript" src="world.js">
+        </script>
+        <script type="text/javascript" src="dupocracy.js">
+        </script>
+        <div class="mask">
+        </div>
+        <div class="promptDialog">
+            <center>
+                <label>Enter your name:</label>
+                <input type="text" name="name" placeholder="Type your name here" />
+                <button onclick="dupocracy.initSelf(this.parentNode.parentNode)">Join</button>
+                <p class="error">
+                </p>
+            </center>
+        </div>
+    </body>
+</html>
