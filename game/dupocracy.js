@@ -46,14 +46,12 @@ var dupocracy = new (function() {
 	var gameState = new StateMachine();
 	gameState.bitMode(true, true);
 	
-	gameState.feed(GS_INIT, E_INIT, GS_PLAY, function() {
-		
+	gameState.feed(GS_INIT, E_INIT, GS_DEFCON2, function() {
+		console.log('dupa')
 	});
 	
-	gameState.feed(GS_INIT, E_INIT, GS_PLAY, function() {
-		
-	});
-
+	gameState.init(GS_INIT);
+	
 	var factions = [ 'europe', 'africa', 'namerica', 'lamerica', 'asia', 'russia' ];
 
 	var players = {};
@@ -64,6 +62,9 @@ var dupocracy = new (function() {
 
 		// networking
 
+		connection.on('gameStart', function() {
+		});		
+
 		connection.on('yourSlot', function(header, body, data) {
 			mySlot = body;
 			control.resolve(body);
@@ -73,11 +74,70 @@ var dupocracy = new (function() {
 			var slot = JSON.parse(body);
 			players[slot.id] = slot;
 		});
+		
+		connection.on('newObject', function(header, body, data) {
+			
+		});
+		
 	});
 	
 	// game control
 
 	control.then(function(mySlot) {
+		var selection = [];
+	
+		view.on('contextmenu', function(event) {
+			event.preventDefault();
+
+			if(selection.length > 0)
+				ui.contextMenu(event.x, event.y, [['attack', 'Attack']]).then(function() {
+				});
+			else
+				ui.contextMenu(event.x, event.y, [['launcher', 'Launcher'], ['radar', 'Radar']]).then(function(option) {
+					world.add(option, event.x, event.y);
+				});
+		});
+		
+		var mouseMoved, mousePressed, pressX, pressY;
+		
+		view.on('click', function(event) {
+			if(!mouseMoved && !world.query(event.x, event.y, 8).some(function(object) {
+				selection.push(object.selected = true && object);
+				return true;
+			}))
+				selection = selection.filter(function(object) {
+					object.selected = false;
+				});	
+		});
+		
+		view.on('mousedown', function(event) {
+			mouseMoved = false;
+			mousePressed = true;
+			pressX = event.x;
+			pressY = event.y;
+		});		
+		
+		view.on('mouseup', function(event) {
+			mousePressed = false;
+		});		
+		
+		view.on('mousemove', function(event) {
+			mouseMoved = true;
+			var rect = mousePressed && [pressX, pressY, event.x, event.y];
+			
+			if(mousePressed) {			
+				if(!world.query(event.x, event.y, 8, rect).every(function(object) {				
+					selection.push(object.selected = true && object);				
+					return true;
+				}))					
+					selection = selection.filter(function(object) {
+						object.selected = false;
+					});							
+			} else
+				view.pointer(world.query(event.x, event.y, 8).length > 0);
+				
+		});
+		
 	});
 
 	// host

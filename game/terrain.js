@@ -1,7 +1,11 @@
 var terrain = new (function() {
-	var shapes = [ [ [ 0, 0 ], [ 100, 0 ], [ 100, 100 ], [ 0, 100 ] ] ];
+	var shapes = [];
+	
+	var background = new Image();
+	background.src = 'assets/world.png';
 
 	this.render = function() {
+		view.drawImage(background);
 		shapes.some(function(shape) {
 			view.drawShape(shape);
 		});

@@ -13,6 +13,8 @@ body {
 	left: 0px;
 }
 
+/* prompt dialog */
+
 .promptDialog {
 	width: 400px;
 	top: 50px;
@@ -26,4 +28,22 @@ body {
 .promptDialog .error {
 	color: #cc0000;
 	font-weight: bold;
+}
+
+/* cotext menu */
+
+.cmenu {
+	position: absolute;
+	background: rgba(0,0,0,0.9);
+	color: white;
+	padding: 5px 10px;
+}
+
+.cmenu button {
+	display: block;
+	border: none;
+	background: none;
+	color: white;
+	border: white;
+	cursor: pointer;
 }
