@@ -39,29 +39,36 @@ var world = new (function() {
 
 	var lastUpdate = new Date().getTime();
 	function update() {
-		var dt = new Date().getTime() - lastUpdate;			
-		lastUpdate += dt;
-		worldTime += dt;
+		var tdt = new Date().getTime() - lastUpdate;			
+		lastUpdate += tdt;
+		worldTime += tdt;
 		
-		missiles.some(function(missile) {
-			missile.ft += dt / 1000;
-			if(missile.ft < 100) {
-				if(!missile.V)
-					missile.V = VMath.normalize([ missile.opts.tx - missile.x, missile.opts.ty - missile.y ]);
-				var V = missile.V;
-				missile.x = missile.x + V[0]*dt/40; 
-				missile.y = missile.y + V[1]*dt/40;
-				
-				if(VMath.length([ missile.opts.tx - missile.x, missile.opts.ty - missile.y ]) < 10 && !missile.dead) {
-					missile.V = [0, 0]
-					missile.dead = true;
-					population.some(function(hotspot) {
-						if(VMath.distance([missile.x, missile.y], [hotspot.x, hotspot.y]) < hotspot.r)
-							hotspot.r *= 0.8;
-					});
-				}
-			}			
-		});
+		var dt = Math.min(tdt, 0.01);
+		
+		do {	
+			missiles.some(function(missile) {
+				missile.ft += dt / 1000;
+				if(missile.ft < 100) {
+					if(!missile.V)
+						missile.V = VMath.normalize([ missile.opts.tx - missile.x, missile.opts.ty - missile.y ]);
+					var V = missile.V;
+					missile.x = missile.x + V[0]*dt/40; 
+					missile.y = missile.y + V[1]*dt/40;
+					
+					if(VMath.length([ missile.opts.tx - missile.x, missile.opts.ty - missile.y ]) < 10 && !missile.dead) {
+						missile.V = [0, 0]
+						missile.dead = true;
+						population.some(function(hotspot) {
+							if(VMath.distance([missile.x, missile.y], [hotspot.x, hotspot.y]) < hotspot.r)
+								hotspot.r *= 0.8;
+						});
+						remove(missile.id);
+					}
+				}			
+			});
+			tdt -= dt;
+			dt = Math.min(tdt, 0.01);
+		} while(dt > 0)
 	}
 
 	view.onAnimate(update);
@@ -99,8 +106,18 @@ var world = new (function() {
 		onRemoveListeners.push(fn)
 	}
 	
-	this.remove = function(objectID) {
-		
+	var remove = this.remove = function(objectID) {
+		groups.some(function(group) {
+			if(group.some(function(object, idx) { 
+				if(object.id == objectID) {
+					group.splice(idx, 1);
+					return true;					
+				}
+			}))				
+				onRemoveListeners.some(function(listener) {
+					listener(objectID);
+				});
+		});
 	}
 	
 	// query
@@ -110,7 +127,7 @@ var world = new (function() {
 		
 		groups.some(function(group) {
 			return group.some(function(object) {
-				if(rect && VMath.insideRect([object.x, object.y], rect) || 
+				if(!object.dead && rect && VMath.insideRect([object.x, object.y], rect) || 
 					VMath.distance([x, y], [object.x, object.y]) < r) {
 					result.push(object);
 					return !!!rect;

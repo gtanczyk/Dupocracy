@@ -90,16 +90,30 @@ var dupocracy = new (function() {
 			factionWidget.markSlot(slot.id, slot.name);
 		});
 		
+		// new objects
+		
 		connection.on('newObject', function(header, body, data) {
 			body = JSON.parse(body);
 			world.add(body.type, body.x, body.y, body.opts);
-		});
-		
+		});	
+
 		connection.hon('makeObject', function(header, body, data, clientID) {
 			body = JSON.parse(body);
 			if(world.canAdd(body.type, body.x, body.y, body.opts))
 				connection.broadcast('newObject', JSON.stringify(body));
-		});					
+		});		
+				
+		// object removal
+		
+		connection.on('removeObject', function(header, body, data) {
+			world.remove(body);
+		});
+		
+		world.onRemove(function(objectID) {
+			connection.broadcast('removeObject', objectID);
+		});
+		
+			
 	
 		// game control
 	
