@@ -3,10 +3,26 @@
 		this.apiURI = apiURI || 'http://www.gamedev.pl/api/';
 	}
 
-	GamedevCloud.prototype.getProxyServers = function() {
+	GamedevCloud.prototype.getConnection = function() {
 		var result = new Deferred();
-		xhrGet(this.apiURI + "proxyservers").then(function(response) {
-			result.resolve(response);
+		xhrGet(this.apiURI + "proxyservers").then(function(servers) {
+			function checkServer(server) {
+				var socket = new WebSocket('ws://'+server.host+':'+server.port);
+				
+				socket.onopen = function() {
+					socket.close();
+					result.resolve(new Connection(new WebSocket('ws://'+server.host+':'+server.port)));
+				};
+				
+				socket.onclose = socket.onerror = function() {
+					if(servers.length > 0)
+						checkServer(servers.splice(0,1)[0])
+					else
+						result.resolve(new Connection({url: 'loopback'}));
+				};										
+			}
+			
+			checkServer(servers.splice(0,1)[0])
 		});
 		return result;
 	}

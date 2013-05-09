@@ -1,4 +1,6 @@
 var world = new (function() {
+	var IDserial = 0;
+	
 	var launchers = [];
 	var interceptors = [];
 	var radars = [];
@@ -32,6 +34,8 @@ var world = new (function() {
 		
 		population = state.population;
 	}
+	
+	// update
 
 	var lastUpdate = new Date().getTime();
 	function update() {
@@ -52,7 +56,7 @@ var world = new (function() {
 					missile.V = [0, 0]
 					missile.dead = true;
 					population.some(function(hotspot) {
-						if(VMath.distance([missile.x, missile.y], [hotspot.x, hotspot.y]) < 10)
+						if(VMath.distance([missile.x, missile.y], [hotspot.x, hotspot.y]) < hotspot.r)
 							hotspot.r *= 0.8;
 					});
 				}
@@ -84,8 +88,20 @@ var world = new (function() {
 		(type == 'launcher' ? launchers : 
 		 type == 'radar' ? radars :
 		 type == 'missile' ? missiles :		 
-			[]).push({ type: type, x: x, y: y, width: 16, height: 16, shape: (type == 'launcher' ? 'rect' : 'arc'), ft: 0, opts: opts });		
+			[]).push({ id: IDserial++, type: type, x: x, y: y, width: 16, height: 16, shape: (type == 'launcher' ? 'rect' : 'arc'), ft: 0, opts: opts });		
 	};
+	
+	// removal
+	
+	var onRemoveListeners = [];
+	
+	this.onRemove = function(fn) {
+		onRemoveListeners.push(fn)
+	}
+	
+	this.remove = function(objectID) {
+		
+	}
 	
 	// query
 	

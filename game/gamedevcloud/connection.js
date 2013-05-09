@@ -1,11 +1,9 @@
 (function(global) {
-	function Connection(socketURL) {
-		this.socketURL = socketURL;
+	function Connection(socket) {
+		this.socketURL = socket.url;
 		
 		this.onListeners = [];
-		
-		this.onListeners.x = Math.random();
-
+	
 		this.on(/^(host|client)$/, function(header, body) {
 			if (header == 'host')
 				this.isHost = true;
@@ -13,19 +11,15 @@
 				this.clientID = body;
 		}.bind(this));
 
-		if (window.socketOffline)
-			this.closeSocket();
+		if(this.socketURL=='loopback')
+			this.loopback();
 		else
 			try {
-				this.socket = new WebSocket(this.socketURL);
-
-				this.socket.onopen = function() {
-
-				}.bind(this);
-
+				this.socket = socket;
+				
 				this.socket.onerror = this.socket.onclose = this.closeSocket
 						.bind(this);
-
+	
 				this.socket.onmessage = function(event) {
 					var header = event.data.substring(0, event.data
 							.indexOf(':'));
@@ -37,16 +31,16 @@
 				this.closeSocket();
 			}
 	}
+	
+	Connection.prototype.loopback = function() {
+		this.receive("client", "0");
+		this.receive("host", "true");
+		setTimeout(this.receive.bind(this, "host", "true"));
+	}	
 
 	Connection.prototype.closeSocket = function() {
-		this.socket = null;
-		if (!this.clientID) { // init local host mode
-			this.log('Server connection failed, entering offline mode');
-			setTimeout(function() {
-				this.receive("client", "0");
-				this.receive("host", "true");
-			}.bind(this), 0);
-		}
+		this.socket = null;		
+		this.log('Server connection failed');
 	};
 	
 	Connection.prototype.log = function() {

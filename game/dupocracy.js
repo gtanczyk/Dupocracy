@@ -223,21 +223,23 @@ var dupocracy = new (function() {
 
 	// get connection
 
+	var getConnection = new Deferred();
+	
+	getConnection.then(function(connection) {
+		// debug
+		connection.on(/(.*)/, function() {
+			console.log("debug:", arguments)
+		});
+		
+		connection.on(/(.*)/, function() {
+			connect.resolve(connection);
+		}, { single: true });
+	});
+
 	var gc = new GamedevCloud("http://www.gamedev.pl/api/");
-	gc.getProxyServers().then(
-			function(servers) {
-				servers.some(function(server) {
-					var connection = new Connection('ws://' + server.host + ':'
-							+ server.port);
-
-					// debug
-					connection.on(/(.*)/, function() {
-						console.log("debug:", arguments)
-					});
-
-					connection.on(/(.*)/, function() {
-						connect.resolve(connection);
-					}, { single: true });
-				});
-			});
+	// specify loopback connection explict in query string
+	if(window.location.href.match(/\?(.*)loopback/))
+		getConnection.resolve(new Connection({url: 'loopback'}));
+	// it will resolve getSocket with real websockets connection or fake local one
+	gc.getConnection().then(getConnection.resolve.bind(getConnection));
 })();
