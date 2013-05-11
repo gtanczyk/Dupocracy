@@ -137,7 +137,6 @@ DomReady.ready(function() {
 			});
 			
 			connection.hon('getCurrentGameState', function(header, body, data, clientID) {
-				console.log('currentGameState', currentGameState);
 				connection.toClient(clientID, 'currentGameState', currentGameState=='connected' ? 'init':currentGameState);
 			});
 	
@@ -228,7 +227,6 @@ DomReady.ready(function() {
 		
 			// end state
 			GameStates.end.then(function() {
-				console.log('end');
 				world.stop();
 				
 				UI.showStatus('Game over, everybody died.');
@@ -237,7 +235,6 @@ DomReady.ready(function() {
 					connection.toHost('maybeRestart');					
 				
 					connection.hon('maybeRestart', function() {
-						console.log('maybeRestart');
 						GameStates.restart.resolve();
 						connection.broadcast('currentGameState', 'restart');
 					}, { single: true });
@@ -248,7 +245,6 @@ DomReady.ready(function() {
 			
 			// restart state
 			GameStates.restart.then(function() {
-				console.log('restarting');
 				UI.showStatus('Restarting game');
 				setTimeout(function() {
 					var gameState = {
