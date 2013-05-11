@@ -6,7 +6,7 @@ var dupocracy = new (function() {
 	var factionWidget
 
 	init.then(function(connection) {		
-		factionWidget = new ui.FactionWidget(factions);	
+		factionWidget = new UI.FactionWidget(factions);	
 
 		// ask for game state when you are in client mode
 		connection.toHost('getGameState');
@@ -74,13 +74,13 @@ var dupocracy = new (function() {
 	GameStates.connect.resolve();
 
 	GameStates.connect.then(function() {
-		ui.showStatus('Connecting with server...');
+		UI.showStatus('Connecting to server...');
 	});
 	
 	// connected
 	init.then(function(connection) {
 		GameStates.connected.then(function() {
-			ui.hideStatus();			
+			UI.hideStatus();			
 			connection.toHost('getCurrentGameState');
 		});
 	});
@@ -88,7 +88,7 @@ var dupocracy = new (function() {
 	// init state, name dialog etc.
 	init.then(function(connection) {
 		GameStates.init.then(function() {
-			ui.nameDialog(getFreeSlots()).then(function(name, slot, result) {
+			UI.nameDialog(getFreeSlots()).then(function(name, slot, result) {
 				connection.toHost('registerSelf', name);
 				var yourSelf = connection.on('yourSelf', function(header, body, data, listener) {
 					result.resolve(true);
@@ -154,13 +154,20 @@ var dupocracy = new (function() {
 	
 		// prepare state
 		GameStates.prepare.then(function() {
-			setTimeout(function() {
+			world.run();
+			
+			UI.showStatus('Prepare stage, place launchers and radars.');
+			world.after(2000, function() {
+				UI.hideStatus();
+			});
+			
+			world.after(10000, function() {
 				connection.broadcast('currentGameState', 'warfare');
-			}, 5000);
+			});
 			control.then(function(mySlot) {	
 				Selection.point.then(function(viewX, viewY, worldX, worldY, selection) {
 					if(selection.length == 0)
-						ui.contextMenu(viewX, viewY, [['launcher', 'Launcher'], ['radar', 'Radar']]).then(function(option) {
+						UI.contextMenu(viewX, viewY, [['launcher', 'Launcher'], ['radar', 'Radar']]).then(function(option) {
 							connection.toHost("makeObject", JSON.stringify({ type: option, x: worldX, y: worldY, opts: { faction: mySlot } }));
 						});
 				}, GameStates.prepare);
@@ -172,14 +179,19 @@ var dupocracy = new (function() {
 		
 		// warfare state
 		GameStates.warfare.then(function() {
-			setTimeout(function() {
+			UI.showStatus('Warfare stage.');
+			world.after(2000, function() {
+				UI.hideStatus();
+			});
+			
+			world.after(60000, function() {
 				connection.broadcast('currentGameState', 'end');
-			}, 5000);
+			});
 			
 			control.then(function(mySlot) {	
 				Selection.point.then(function(viewX, viewY, worldX, worldY, selection) {
 					if(selection.length > 0)
-						ui.contextMenu(viewX, viewY, [['attack', 'Attack']]).then(function(option) {
+						UI.contextMenu(viewX, viewY, [['attack', 'Attack']]).then(function(option) {
 							if(option == 'attack') {
 								selection.some(function(object) {
 									if(object.type == 'launcher')
@@ -190,6 +202,14 @@ var dupocracy = new (function() {
 						});				
 				}, GameStates.warfare);			
 			});
+		});
+	});		
+	
+	// end state
+	GameStates.end.then(function() {
+		UI.showStatus('Game over, everybody died.');
+		world.after(2000, function() {
+			UI.hideStatus();
 		});
 	});		
 

@@ -89,3 +89,23 @@ body>canvas {
 	font-size: x-large;
 	text-shadow: 0px 0px 15px white;
 }
+
+/* world time */
+
+.worldtime {
+	position: fixed;
+	width: 100px;
+	text-align: center;
+	color: white;
+	top: 0px;
+	right: 0px;
+	padding: 20px;
+	text-shadow: 0px 0px 20px white;
+	box-shadow:  inset 0px 0px 20px white;
+	border-bottom-left-radius: 5px;
+	font-size: large;
+}
+
+.worldtime:empty {
+	display: none;
+}

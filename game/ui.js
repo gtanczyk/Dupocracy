@@ -1,4 +1,4 @@
-var ui = new (function() {
+var UI = new (function() {
 	
 	// faction widget
 
@@ -78,7 +78,7 @@ var ui = new (function() {
 
 	this.contextMenu = function(x, y, options) {
 		if(currentMenu)
-			ui.remove(currentMenu)
+			UI.remove(currentMenu)
 	
 		var result = new Deferred();
 	
@@ -90,7 +90,7 @@ var ui = new (function() {
 			node.appendChild(el);
 			el.addEventListener('click', function() {
 				result.resolve(option[0], option[1]);
-				ui.remove(node);
+				UI.remove(node);
 				currentMenu = null;
 			}, false);
 		});
@@ -133,5 +133,16 @@ var ui = new (function() {
 		if(statusEl)
 			statusEl = remove(statusEl)
 	};
+	
+	// world time
+
+	var wtEl = document.createElement('div');
+	wtEl.className = 'worldtime';
+	this.toggleNode(wtEl, true);
+	this.updateWorldTime = function(t) {
+		t = (t/1000) << 0;
+		wtEl.innerHTML = ((t/60) << 0) + ":" + (((t%60) < 10 ? '0' : '')+(t%60));
+	}
+	
 	
 })();

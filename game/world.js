@@ -37,13 +37,16 @@ var world = new (function() {
 	
 	// update
 
-	var lastUpdate = new Date().getTime();
+	var lastUpdate;
 	function update() {
 		var tdt = new Date().getTime() - lastUpdate;			
 		lastUpdate += tdt;
 		worldTime += tdt;
 		
-		var dt = Math.min(tdt, 0.01);
+		while (afterListeners[0] && afterListeners[0].t <= worldTime)
+			afterListeners.splice(0, 1)[0].fn(worldTime);
+		
+		var dt = Math.min(tdt, 0.05);
 		
 		do {	
 			missiles.some(function(missile) {
@@ -67,11 +70,22 @@ var world = new (function() {
 				}			
 			});
 			tdt -= dt;
-			dt = Math.min(tdt, 0.01);
+			dt = Math.min(tdt, 0.05);
+			
+			UI.updateWorldTime(worldTime);
 		} while(dt > 0)
 	}
 
-	view.onAnimate(update);
+	this.run = function() {
+		lastUpdate = new Date().getTime();
+		setInterval(update, 10);
+	};
+	
+	var afterListeners = [];
+	
+	this.after = function(t, fn) {
+		afterListeners.push({ t: worldTime+t, fn: fn });
+	}
 	
 	// constraint check
 	
