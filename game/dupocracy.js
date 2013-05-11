@@ -167,7 +167,7 @@ var dupocracy = new (function() {
 				UI.hideStatus();
 			});
 			
-			world.after(10000, function() {
+			world.after(60000, function() {
 				connection.broadcast('currentGameState', 'warfare');
 			});
 			control.then(function(mySlot) {	
@@ -213,10 +213,10 @@ var dupocracy = new (function() {
 	
 	// end state
 	GameStates.end.then(function() {
+		world.stop();
+		
 		UI.showStatus('Game over, everybody died.');
-		world.after(2000, function() {
-			UI.hideStatus();
-		});
+		setTimeout(UI.hideStatus.bind(UI), 5000);
 	});		
 
 	// host

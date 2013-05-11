@@ -76,17 +76,28 @@ var world = new (function() {
 		} while(dt > 0)
 	}
 
+	var updateInterval;
 	this.run = function() {
-		if(lastUpdate)
+		if(updateInterval)
 			return;
 		
 		lastUpdate = new Date().getTime();
-		setInterval(update, 10);
+		updateInterval = setInterval(update, 10);
 	};
+	
+	this.stop = function() {
+		if(updateInterval)
+			return;
+		
+		clearInterval(updateInterval);
+		updateInterval = null;
+		
+		UI.updateWorldTime(worldTime);
+	}
 	
 	var afterListeners = [];
 	
-	this.after = function(t, fn) {
+	this.after = function(t, fn) {		
 		if(!lastUpdate)
 			this.run();
 		
