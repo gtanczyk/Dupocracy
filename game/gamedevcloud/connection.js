@@ -101,6 +101,7 @@
 	};
 
 	Connection.prototype.toHost = function(header, body, callback) {
+		console.log('toHost', arguments)
 		if (this.isHost)
 			setTimeout(function() {
 				this.receive(this.clientID, header + ":"

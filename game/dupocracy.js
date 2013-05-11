@@ -3,7 +3,7 @@ DomReady.ready(function() {
 	dupocracy = new (function() {
 		var connect = new Deferred(true);
 		var init = new Deferred();
-		var control = new Deferred(true);
+		var control = new Deferred();
 	
 		var factionWidget;
 	
@@ -17,12 +17,15 @@ DomReady.ready(function() {
 				players = gameState.players;
 				world.restore(gameState.world);
 				
+				factionWidget.reset();
+				
 				Object.keys(players).some(function(slot) {
 					factionWidget.markSlot(slot, players[slot].name);
 				});		
 				
 				GameStates.connected.resolve();
 			});
+			
 			connection.hon('getGameState', function(header, body, data, clientID) {
 				var gameState = {
 					players: players,				
@@ -63,9 +66,9 @@ DomReady.ready(function() {
 		var GameStates = {};
 		var currentGameState;
 	
-		['connect', 'connected', 'init', 'prepare', 'warfare', 'end'].some(function(state) {
+		['connect', 'connected', 'init', 'prepare', 'warfare', 'end', 'restart'].some(function(state) {
 			(GameStates[state] = new Deferred()).then(function() {
-				if(currentGameState)
+				if(currentGameState && currentGameState != state)
 					GameStates[currentGameState].clear();
 				currentGameState = state;
 			});
@@ -90,20 +93,26 @@ DomReady.ready(function() {
 		// init state, name dialog etc.
 		init.then(function(connection) {
 			GameStates.init.then(function() {
-				UI.nameDialog(getFreeSlots()).then(function(name, result) {
-					connection.toHost('registerSelf', name);
-					var yourSelf = connection.on('yourSelf', function(header, body, data, listener) {
-						result.resolve(true);
-						
-						// clear listener
-						nameTaken.remove();
-					}, {single: true})
-					var nameTaken = connection.on('nameTaken', function(header, body, data, listener) {
-						result.resolve(false, 'This name is already taken by other player.');
-						// clear listener
-						yourSelf.remove(false);
-					}, {single: true});			
-				});
+				UI.hideStatus(); 
+				
+				connection.toHost('mySelf', name);
+				connection.on('yourSelf', function(header, body, data, listener) {
+					if(!body)
+						UI.nameDialog().then(function(name, result) {
+							connection.toHost('registerSelf', name);
+							var yourSelf = connection.on('yourSelf', function(header, body, data, listener) {
+								result.resolve(true);
+								
+								// clear listener
+								nameTaken.remove();
+							}, {single: true})
+							var nameTaken = connection.on('nameTaken', function(header, body, data, listener) {
+								result.resolve(false, 'This name is already taken by other player.');
+								// clear listener
+								yourSelf.remove(false);
+							}, {single: true});			
+						});
+					}, {single: true});
 			});
 		});
 	
@@ -112,20 +121,23 @@ DomReady.ready(function() {
 		init.then(function(connection) {
 			
 			factionWidget.joinSlot.then(function(slot) {
-				joinGame(slot).then(function(slot) {
-					factionWidget.clearAll();
-					if(slot)
-						UI.readyDialog().then(function() {
-							connection.toHost('playerReady', true);
-							UI.showStatus('Waiting for other players');
+				GameStates.init.then(function() {
+					joinGame(slot).then(function(slot) {
+						factionWidget.clearAll();
+						if(slot)
+							UI.readyDialog().then(function() {
+								connection.toHost('playerReady', true);
+								UI.showStatus('Waiting for other players');
+								control.resolve(slot);
+							});
+						else
 							control.resolve(slot);
-						});
-					else
-						control.resolve(slot);
+					});
 				});
-			}, GameStates.init)
+			});
 			
 			connection.hon('getCurrentGameState', function(header, body, data, clientID) {
+				console.log('currentGameState', currentGameState);
 				connection.toClient(clientID, 'currentGameState', currentGameState=='connected' ? 'init':currentGameState);
 			});
 	
@@ -212,21 +224,54 @@ DomReady.ready(function() {
 							});				
 					}, GameStates.warfare);			
 				});
+			});		
+		
+			// end state
+			GameStates.end.then(function() {
+				console.log('end');
+				world.stop();
+				
+				UI.showStatus('Game over, everybody died.');
+				setTimeout(function() { 
+					UI.hideStatus(); 
+					connection.toHost('maybeRestart');					
+				
+					connection.hon('maybeRestart', function() {
+						console.log('maybeRestart');
+						GameStates.restart.resolve();
+						connection.broadcast('currentGameState', 'restart');
+					}, { single: true });
+				
+				}, 5000);
+						
+			});		
+			
+			// restart state
+			GameStates.restart.then(function() {
+				console.log('restarting');
+				UI.showStatus('Restarting game');
+				setTimeout(function() {
+					var gameState = {
+						players: {},				
+						world: world.initial
+					}
+					
+					connection.broadcast('currentGameState', 'init');
+					connection.broadcast('newGameState', JSON.stringify(gameState));
+				}, 5000);
+	//			setTimeout(UI.hideStatus.bind(UI), 5000);	
 			});
+		
 		});		
 		
-		// end state
-		GameStates.end.then(function() {
-			world.stop();
-			
-			UI.showStatus('Game over, everybody died.');
-			setTimeout(UI.hideStatus.bind(UI), 5000);
-		});		
-	
 		// host
 	
 		connect.then(function(connection) {
 			var clients = [];
+			
+			connection.hon('mySelf', function(header, body, data, clientID) {
+				return connection.toClient(clientID, 'yourSelf', (clients.filter(function(client) { return client.clientID == clientID })[0]||{}).name);
+			});
 	
 			connection.hon('registerSelf', function(header, body, data, clientID) {
 				if (clients.some(function(client) { return client.name == body }))

@@ -10,18 +10,25 @@ DomReady.ready(function() {
 			var node = document.createElement('div');
 			node.className = 'factionWidget';
 			
-			var factionNode = factions.reduce(function(r, faction) {
-				var el = document.createElement('li');
-				el.innerHTML = escapeHTML(faction) + '<span><button>Join</button></span>';
-				
-				el.querySelector('button').addEventListener('click', function() {
-					joinSlot.resolve(faction);
-				});
-				
-				node.appendChild(el);				
-				r[faction] = el;
-				return r;
-			}.bind(this), {});
+			var factionNode;
+			
+			this.reset = function() {
+				joinSlot.clear();
+			
+				node.innerHTML = '';
+				factionNode = factions.reduce(function(r, faction) {
+					var el = document.createElement('li');
+					el.innerHTML = escapeHTML(faction) + '<span><button>Join</button></span>';
+					
+					el.querySelector('button').addEventListener('click', function() {
+						joinSlot.resolve(faction);
+					});
+					
+					node.appendChild(el);				
+					r[faction] = el;
+					return r;
+				}.bind(this), {});
+			};			
 			
 			document.body.appendChild(node);
 			
@@ -71,8 +78,12 @@ DomReady.ready(function() {
 	                '<p class="error"> </p></center>';
 	                                
 	        promptDialogNode.querySelector('button').addEventListener('click', function() {
+	        	var name = promptDialogNode.querySelector('input').value;
+	        	if(!name || name.length == 0)
+	        		return;
+	        		
 	        	var deferred = new Deferred();
-	        	result.resolve(promptDialogNode.querySelector('input').value, deferred);
+	        	result.resolve(name, deferred);
 	        	deferred.then(function(close, error) {
 	        		if(close)
 	        			promptDialog(false);
@@ -150,6 +161,8 @@ DomReady.ready(function() {
 	
 		var statusEl;
 		this.showStatus = function(message) {
+			this.hideStatus();
+			
 			statusEl = document.createElement('div');
 			statusEl.innerHTML = '<span>'+escapeHTML(message)+'</span>';
 			statusEl.className = 'status';

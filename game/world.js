@@ -86,11 +86,12 @@ var world = new (function() {
 	};
 	
 	this.stop = function() {
-		if(updateInterval)
+		if(!updateInterval)
 			return;
 		
 		clearInterval(updateInterval);
 		updateInterval = null;
+		lastUpdate = null;
 		
 		UI.updateWorldTime(worldTime);
 	}
@@ -192,6 +193,8 @@ var world = new (function() {
 		population.some(function(hotspot) {
 			view.fillArc(hotspot.x, hotspot.y, hotspot.r, 'white');
 		});
-	}
+	};
+	
+	this.initial = JSON.parse(JSON.stringify(this.store()));
 	
 })();
