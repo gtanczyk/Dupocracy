@@ -5,29 +5,43 @@ DomReady.ready(function() {
 		// faction widget
 	
 		this.FactionWidget = function(factions) {
+			var joinSlot = this.joinSlot = new Deferred();	
+		
 			var node = document.createElement('div');
 			node.className = 'factionWidget';
 			
 			var factionNode = factions.reduce(function(r, faction) {
 				var el = document.createElement('li');
-				el.innerHTML = escapeHTML(faction) + '<span></span>';
-				node.appendChild(el);
+				el.innerHTML = escapeHTML(faction) + '<span><button>Join</button></span>';
+				
+				el.querySelector('button').addEventListener('click', function() {
+					joinSlot.resolve(faction);
+				});
+				
+				node.appendChild(el);				
 				r[faction] = el;
 				return r;
-			}, {});
+			}.bind(this), {});
 			
 			document.body.appendChild(node);
 			
-			this.markSlot = function(slot, name) {
+			var markSlot = this.markSlot = function(slot, name) {
 				name = escapeHTML(name);
 				factionNode[slot].querySelector('span').innerHTML = name && (' ('+ name +')') || '';
 			}
 			
-			this.clearSlot = function(slot, name) {
-				this.markSlot(slot);
-			}
+			var clearSlot = this.clearSlot = function(slot, name) {
+				markSlot(slot);
+			}					
 			
-		};
+			this.clearAll = function(slot) {
+				factions.some(function(slot) {
+					if(factionNode[slot].querySelector('button'))
+						clearSlot(slot);
+				});
+			}			
+			
+		};				
 		
 		// mask
 		var maskNode = document.createElement('div');
@@ -46,32 +60,24 @@ DomReady.ready(function() {
 		}.bind(this);
 		
 		// name dialog
-		this.nameDialog = function(slots) {
+		this.nameDialog = function() {
 			var result = new Deferred();
 			
 			this.promptDialog(true);
-			
-			if(slots.length > 0) {		
-				promptDialogNode.innerHTML = '<center><label>Enter your name:</label>'+
-		                '<input type="text" name="name" placeholder="Type your name here" />'+
-		                '<button>Join</button>'+
-		                '<select>'+slots.map(function(slot) {
-		                	return '<option>'+escapeHTML(slot)+'</option>';
-		                }).join('')+'</select>'
-		                '<p class="error"> </p></center>';
-		                                
-		        promptDialogNode.querySelector('button').addEventListener('click', function() {
-		        	var deferred = new Deferred();
-		        	result.resolve(promptDialogNode.querySelector('input').value, slots[promptDialogNode.querySelector('select').selectedIndex], deferred);
-		        	deferred.then(function(close, error) {
-		        		if(close)
-		        			promptDialog(false);
-		        	})
-		        }, false);        
-	    	} else
-	    		promptDialogNode.innerHTML = '<center>Game is full</center>';
-	        
-	        
+
+			promptDialogNode.innerHTML = '<center><label>Enter your name:</label>'+
+	                '<input type="text" name="name" placeholder="Type your name here" />'+
+	                '<button>Join</button>'+
+	                '<p class="error"> </p></center>';
+	                                
+	        promptDialogNode.querySelector('button').addEventListener('click', function() {
+	        	var deferred = new Deferred();
+	        	result.resolve(promptDialogNode.querySelector('input').value, deferred);
+	        	deferred.then(function(close, error) {
+	        		if(close)
+	        			promptDialog(false);
+	        	})
+	        }, false);        	    	        
 	
 			return result;
 		}

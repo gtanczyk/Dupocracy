@@ -5,7 +5,7 @@ DomReady.ready(function() {
 		var init = new Deferred();
 		var control = new Deferred(true);
 	
-		var factionWidget
+		var factionWidget;
 	
 		init.then(function(connection) {		
 			factionWidget = new UI.FactionWidget(factions);	
@@ -90,25 +90,13 @@ DomReady.ready(function() {
 		// init state, name dialog etc.
 		init.then(function(connection) {
 			GameStates.init.then(function() {
-				UI.nameDialog(getFreeSlots()).then(function(name, slot, result) {
+				UI.nameDialog(getFreeSlots()).then(function(name, result) {
 					connection.toHost('registerSelf', name);
 					var yourSelf = connection.on('yourSelf', function(header, body, data, listener) {
 						result.resolve(true);
 						
 						// clear listener
 						nameTaken.remove();
-						
-						if(slot)
-							joinGame(slot).then(function(slot) {
-								if(slot)
-									UI.readyDialog().then(function() {
-										connection.toHost('playerReady', true);
-										UI.showStatus('Waiting for other players');
-										control.resolve(slot);
-									});
-								else
-									control.resolve(slot);
-							});
 					}, {single: true})
 					var nameTaken = connection.on('nameTaken', function(header, body, data, listener) {
 						result.resolve(false, 'This name is already taken by other player.');
@@ -122,6 +110,20 @@ DomReady.ready(function() {
 		// client
 	
 		init.then(function(connection) {
+			
+			factionWidget.joinSlot.then(function(slot) {
+				joinGame(slot).then(function(slot) {
+					factionWidget.clearAll();
+					if(slot)
+						UI.readyDialog().then(function() {
+							connection.toHost('playerReady', true);
+							UI.showStatus('Waiting for other players');
+							control.resolve(slot);
+						});
+					else
+						control.resolve(slot);
+				});
+			}, GameStates.init)
 			
 			connection.hon('getCurrentGameState', function(header, body, data, clientID) {
 				connection.toClient(clientID, 'currentGameState', currentGameState=='connected' ? 'init':currentGameState);

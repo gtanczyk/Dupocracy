@@ -27,13 +27,47 @@ body>canvas {
 	position: absolute;
 	left: 50%;
 	margin-left: -200px;
-	background: white;
 	padding: 30px 50px;
+	background: black;
+	box-shadow: inset 0px 0px 15px gold;
+	color: white;
+	border: 1px solid gold;
+	border-radius: 5px;
 }
 
 .promptDialog .error {
 	color: #cc0000;
 	font-weight: bold;
+}
+
+.promptDialog * {
+	display: block;
+	margin: 10px;
+}
+
+/* input */
+
+.promptDialog input {
+	background: black;
+	color: white;
+	border: 1px solid #888;
+	padding: 5px 10px;
+	border-radius: 4px;
+}
+
+/* buttons */
+
+.promptDialog button {
+	background: rgb(180, 152, 0);
+	color: white;
+	border: none;
+	padding: 5px 15px;
+	cursor: pointer;
+	font-size: large;
+}
+
+.promptDialog button:hover {
+	background: rgb(143, 121, 0);
 }
 
 /* cotext menu */
@@ -66,6 +100,18 @@ body>canvas {
 
 .factionWidget span {
 	font-weight: normal;
+}
+
+.factionWidget span button {
+	background: none;
+	border: none;
+	color: white;
+	font-weight: bold;
+	cursor: pointer;	
+}
+
+.factionWidget span button:hover {
+	text-decoration: underline;
 }
 
 /* status */
