@@ -22,6 +22,8 @@ var view = new (function() {
 		event.preventDefault();
 	});					
 	
+	var ready = this.ready = new Deferred();
+	
 	// pointer control
 
 	this.pointer = function(enabled) {
@@ -39,6 +41,8 @@ var view = new (function() {
 		ctx = canvas.getContext('2d');
 		
 		requestAnimationFrame(animationFrame);
+		
+		ready.resolve(true);
 	});
 			
 	

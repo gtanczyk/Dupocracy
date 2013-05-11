@@ -35,7 +35,7 @@
 	Connection.prototype.loopback = function() {
 		this.receive("client", "0");
 		this.receive("host", "true");
-		setTimeout(this.receive.bind(this, "host", "true"), 100);
+		setTimeout(this.receive.bind(this, "host", "true"));
 	}	
 
 	Connection.prototype.closeSocket = function() {
