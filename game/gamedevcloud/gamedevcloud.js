@@ -64,12 +64,20 @@
 		this.single = single;
 	}
 
-	Deferred.prototype.then = function(fn) {
-		if (typeof this.result != 'undefined')
+	Deferred.prototype.then = function(fn, check) {
+		if (typeof this.result != 'undefined' && !check)
 			fn.apply(null, this.result);
 		else
-			this.listeners.push(fn);
+			this.listeners.push({fn: fn, check: check});
 	}
+	
+	Deferred.prototype.resolved = function() {
+		return typeof this.result != 'undefined';
+	}	
+	
+	Deferred.prototype.clear = function() {
+		delete this.result;
+	}		
 
 	Deferred.prototype.resolve = function() {
 		if(this.result && this.single)
@@ -77,7 +85,7 @@
 			
 		var result = this.result = arguments;
 		this.listeners.some(function(listener) {
-			listener.apply(null, result);
+			(!listener.check || listener.check.resolved()) && listener.fn.apply(null, result);
 		});
 	}
 

@@ -15,7 +15,7 @@ var world = new (function() {
 						{ name: 'Cape Town', x: 710, y: 470, r: 20, faction: 'africa' },
 						{ name: 'Bejing', x: 1040, y: 250, r: 20, faction: 'asia' },
 						{ name: 'Tokyo', x: 1140, y: 220, r: 20, faction: 'asia' },
-						{ name: 'Rio de janeiro', x: 490, y: 400, r: 20, faction: 'lamerica' }];
+						{ name: 'Rio de janeiro', x: 490, y: 400, r: 20, faction: 'lamerica' }];		
 	
 	// store/restore
 	

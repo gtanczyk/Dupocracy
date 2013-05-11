@@ -29,7 +29,6 @@ var ui = new (function() {
 	// mask
 	var maskNode = document.createElement('div');
 	maskNode.className = 'mask';
-	document.body.appendChild(maskNode);
 	var mask = this.mask = function(enabled) {
 		this.toggleNode(maskNode, enabled);
 	}.bind(this);
@@ -49,22 +48,26 @@ var ui = new (function() {
 		
 		this.promptDialog(true);
 		
-		promptDialogNode.innerHTML = '<center><label>Enter your name:</label>'+
-                '<input type="text" name="name" placeholder="Type your name here" />'+
-                '<button>Join</button>'+
-                '<select>'+slots.map(function(slot) {
-                	return '<option>'+slot+'</option>';
-                }).join('')+'</select>'
-                '<p class="error"> </p></center>';
-                                
-        promptDialogNode.querySelector('button').addEventListener('click', function() {
-        	var deferred = new Deferred();
-        	result.resolve(promptDialogNode.querySelector('input').value, slots[promptDialogNode.querySelector('select').selectedIndex], deferred);
-        	deferred.then(function(close, error) {
-        		if(close)
-        			promptDialog(false);
-        	})
-        }, false);
+		if(slots.length > 0) {		
+			promptDialogNode.innerHTML = '<center><label>Enter your name:</label>'+
+	                '<input type="text" name="name" placeholder="Type your name here" />'+
+	                '<button>Join</button>'+
+	                '<select>'+slots.map(function(slot) {
+	                	return '<option>'+slot+'</option>';
+	                }).join('')+'</select>'
+	                '<p class="error"> </p></center>';
+	                                
+	        promptDialogNode.querySelector('button').addEventListener('click', function() {
+	        	var deferred = new Deferred();
+	        	result.resolve(promptDialogNode.querySelector('input').value, slots[promptDialogNode.querySelector('select').selectedIndex], deferred);
+	        	deferred.then(function(close, error) {
+	        		if(close)
+	        			promptDialog(false);
+	        	})
+	        }, false);        
+    	} else
+    		promptDialogNode.innerHTML = '<center>Game is full</center>';
+        
         
 
 		return result;
@@ -115,5 +118,20 @@ var ui = new (function() {
 			remove(node);
 	}
 	
+	// status
+
+	var statusEl;
+	this.showStatus = function(message) {
+		statusEl = document.createElement('div');
+		statusEl.innerHTML = '<span>'+message+'</span>';
+		statusEl.className = 'status';
+		
+		document.body.appendChild(statusEl);
+	};
+	
+	this.hideStatus = function() {
+		if(statusEl)
+			statusEl = remove(statusEl)
+	};
 	
 })();

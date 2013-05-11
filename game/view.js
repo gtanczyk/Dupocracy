@@ -15,9 +15,12 @@ var view = new (function() {
 		return canvas.addEventListener(event, function(event) {
 			event.eX = event.layerX, event.eY = event.layerY;					
 			handler(event);
-		}, false);		
-			
-	}
+		}, false);					
+	};
+	
+	this.on('contextmenu', function(event) {
+		event.preventDefault();
+	});					
 	
 	// pointer control
 

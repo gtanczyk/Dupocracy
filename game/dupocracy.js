@@ -5,8 +5,7 @@ var dupocracy = new (function() {
 
 	var factionWidget
 
-	init.then(function(connection) {
-		
+	init.then(function(connection) {		
 		factionWidget = new ui.FactionWidget(factions);	
 
 		// ask for game state when you are in client mode
@@ -18,36 +17,17 @@ var dupocracy = new (function() {
 			
 			Object.keys(players).some(function(slot) {
 				factionWidget.markSlot(slot, players[slot].name);
-			});
+			});		
 			
-			ui.nameDialog(getFreeSlots()).then(function(name, slot, result) {
-				connection.toHost('registerSelf', name);
-				var yourSelf = connection.on('yourSelf', function(header, body, data, listener) {
-					result.resolve(true);
-					
-					// clear listener
-					nameTaken.remove();
-					
-					if(slot)
-						joinGame(slot).then(function(slot) {
-							if(slot)
-								control.resolve(slot);
-						});
-				}, {single: true})
-				var nameTaken = connection.on('nameTaken', function(header, body, data, listener) {
-					result.resolve(false, 'This name is already taken by other player.');
-					// clear listener
-					yourSelf.remove(false);
-				}, {single: true});			
-			});
+			GameStates.connected.resolve();
 		});
 		connection.hon('getGameState', function(header, body, data, clientID) {
 			var gameState = {
-				players: players,
+				players: players,				
 				world: world.store()
 			}
 			
-			connection.toClient(clientID, 'newGameState', JSON.stringify(gameState))
+			connection.toClient(clientID, 'newGameState', JSON.stringify(gameState));
 		});				
 	});
 	
@@ -76,12 +56,71 @@ var dupocracy = new (function() {
 	var factions = [ 'europe', 'africa', 'namerica', 'lamerica', 'asia', 'russia' ];		
 
 	var players = {};
+	
+
+	var GameStates = {};
+	var currentGameState;
+
+	['connect', 'connected', 'init', 'prepare', 'warfare', 'end'].some(function(state) {
+		(GameStates[state] = new Deferred()).then(function() {
+			if(currentGameState)
+				GameStates[currentGameState].clear();
+			currentGameState = state;
+		});
+	});	
+	
+	// connection state
+	
+	GameStates.connect.resolve();
+
+	GameStates.connect.then(function() {
+		ui.showStatus('Connecting with server...');
+	});
+	
+	// connected
+	init.then(function(connection) {
+		GameStates.connected.then(function() {
+			ui.hideStatus();			
+			connection.toHost('getCurrentGameState');
+		});
+	});
+	
+	// init state, name dialog etc.
+	init.then(function(connection) {
+		GameStates.init.then(function() {
+			ui.nameDialog(getFreeSlots()).then(function(name, slot, result) {
+				connection.toHost('registerSelf', name);
+				var yourSelf = connection.on('yourSelf', function(header, body, data, listener) {
+					result.resolve(true);
+					
+					// clear listener
+					nameTaken.remove();
+					
+					if(slot)
+						joinGame(slot).then(function(slot) {
+							if(slot)
+								control.resolve(slot);
+						});
+				}, {single: true})
+				var nameTaken = connection.on('nameTaken', function(header, body, data, listener) {
+					result.resolve(false, 'This name is already taken by other player.');
+					// clear listener
+					yourSelf.remove(false);
+				}, {single: true});			
+			});
+		});
+	});
 
 	// client
 
 	init.then(function(connection) {
+		
+		connection.hon('getCurrentGameState', function(header, body, data, clientID) {
+			connection.toClient(clientID, 'currentGameState', currentGameState=='connected' ? 'init':currentGameState);
+		});
 
-		connection.on('gameStart', function() {
+		connection.on('currentGameState', function(header, body, data) {
+			GameStates[body].resolve();
 		});				
 		
 		connection.on('slotTaken', function(header, body, data) {
@@ -111,80 +150,48 @@ var dupocracy = new (function() {
 		
 		world.onRemove(function(objectID) {
 			connection.broadcast('removeObject', objectID);
-		});
-		
-			
+		});					
 	
-		// game control
-	
-		control.then(function(mySlot) {
-			var selection = [];
-		
-			view.on('contextmenu', function(event) {
-				event.preventDefault();
-	
-				if(selection.length > 0)
-					ui.contextMenu(event.clientX, event.layerY, [['attack', 'Attack']]).then(function(option) {
-						if(option == 'attack') {
-							selection.some(function(object) {
-								if(object.type == 'launcher')
-									connection.toHost("makeObject", JSON.stringify({ type: 'missile', x: object.x, y: object.y, 
-																					 opts: { tx: event.eX, ty: event.eY, faction: mySlot } }));
-							});							
-						}
-					});
-				else
-					ui.contextMenu(event.clientX, event.layerY, [['launcher', 'Launcher'], ['radar', 'Radar']]).then(function(option) {
-						connection.toHost("makeObject", JSON.stringify({ type: option, x: event.eX, y: event.eY, opts: { faction: mySlot } }));
-					});
-			});
-			
-			// unit selection
-			
-			var mouseMoved, mousePressed, pressX, pressY;
-			
-			view.on('click', function(event) {
-				if(!mouseMoved && !world.query(event.eX, event.eY, 8).some(function(object) {
-					if(selection.indexOf(object)==-1 && object.opts.faction == mySlot)
-						selection.push((object.selected = true) && object);
-					return true;
-				}))
-					selection = selection.filter(function(object) {
-						object.selected = false;
-					});	
-			});
-			
-			view.on('mousedown', function(event) {
-				mouseMoved = false;
-				mousePressed = true;
-				pressX = event.eX;
-				pressY = event.eY;
-			});		
-			
-			view.on('mouseup', function(event) {
-				mousePressed = false;
-			});		
-			
-			view.on('mousemove', function(event) {
-				mouseMoved = true;
-				var rect = mousePressed && [pressX, pressY, event.eX, event.eY];
+		// prepare state
+		GameStates.prepare.then(function() {
+			setTimeout(function() {
+				connection.broadcast('currentGameState', 'warfare');
+			}, 5000);
+			control.then(function(mySlot) {	
+				Selection.point.then(function(viewX, viewY, worldX, worldY, selection) {
+					if(selection.length == 0)
+						ui.contextMenu(viewX, viewY, [['launcher', 'Launcher'], ['radar', 'Radar']]).then(function(option) {
+							connection.toHost("makeObject", JSON.stringify({ type: option, x: worldX, y: worldY, opts: { faction: mySlot } }));
+						});
+				}, GameStates.prepare);
 				
-				if(mousePressed) {			
-					if(!world.query(event.eX, event.eY, 8, rect).every(function(object) {
-						if(selection.indexOf(object)==-1 && object.opts.faction == mySlot)
-							selection.push((object.selected = true) && object);				
-						return true;
-					}))					
-						selection = selection.filter(function(object) {
-							object.selected = false;
-						});							
-				} else
-					view.pointer(world.query(event.eX, event.eY, 8).length > 0);
-					
+				Selection.filter.resolve(mySlot);
+				
 			});
-			
 		});
-	});
+		
+		// warfare state
+		GameStates.warfare.then(function() {
+			setTimeout(function() {
+				connection.broadcast('currentGameState', 'end');
+			}, 5000);
+			
+			control.then(function(mySlot) {	
+				Selection.point.then(function(viewX, viewY, worldX, worldY, selection) {
+					if(selection.length > 0)
+						ui.contextMenu(viewX, viewY, [['attack', 'Attack']]).then(function(option) {
+							if(option == 'attack') {
+								selection.some(function(object) {
+									if(object.type == 'launcher')
+										connection.toHost("makeObject", JSON.stringify({ type: 'missile', x: object.x, y: object.y, 
+																						 opts: { tx: worldX, ty: worldY, faction: mySlot } }));
+								});							
+							}
+						});				
+				}, GameStates.warfare);			
+			});
+		});
+	});		
 
 	// host
 
@@ -215,7 +222,7 @@ var dupocracy = new (function() {
 				connection.broadcast('slotTaken', JSON.stringify(players[body]));
 				
 				if(Object.keys(players).length >= 1)
-					connection.broadcast('gameStart');
+					connection.broadcast('currentGameState', 'prepare');
 			}			
 		});		
 		
@@ -234,12 +241,8 @@ var dupocracy = new (function() {
 		
 		init.resolve(connection);
 	});
-
-	// get connection
-
-	var getConnection = new Deferred();
 	
-	getConnection.then(function(connection) {
+	Host.getConnection.then(function(connection) {
 		// debug
 		connection.on(/(.*)/, function() {
 			console.log("debug:", arguments)
@@ -249,11 +252,4 @@ var dupocracy = new (function() {
 			connect.resolve(connection);
 		}, { single: true });
 	});
-
-	var gc = new GamedevCloud("http://www.gamedev.pl/api/");
-	// specify loopback connection explict in query string
-	if(window.location.href.match(/\?(.*)loopback/))
-		getConnection.resolve(new Connection({url: 'loopback'}));
-	// it will resolve getSocket with real websockets connection or fake local one
-	gc.getConnection().then(getConnection.resolve.bind(getConnection));
 })();
