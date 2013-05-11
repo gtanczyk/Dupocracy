@@ -188,7 +188,7 @@ DomReady.ready(function() {
 				control.then(function(mySlot) {	
 					Selection.point.then(function(viewX, viewY, worldX, worldY, selection) {
 						if(selection.length == 0)
-							UI.contextMenu(viewX, viewY, [['launcher', 'Launcher'], ['radar', 'Radar']]).then(function(option) {
+							UI.contextMenu(viewX, viewY, [['launcher', 'Launcher'], ['radar', 'Radar']].map(function(el) { return [el[0], el[1] + ' ('+world.countGroup(el[0], mySlot)+'/5)'] })).then(function(option) {
 								connection.toHost("makeObject", JSON.stringify({ type: option, x: worldX, y: worldY, opts: { faction: mySlot } }));
 							});
 					}, GameStates.prepare);

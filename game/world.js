@@ -107,10 +107,23 @@ var world = new (function() {
 	
 	// constraint check
 	
+	this.countGroup = function(type, faction) {
+		var group = type=='launcher' && launchers || type=='radar' && radars;
+		if(group)
+			return group.reduce(function(count, object) { 
+				if(object.opts.faction == faction)
+					return count + 1; 
+				else 
+					return count;  }, 0);
+		else 
+			return 0;
+	};
+	
 	this.canAdd = function(type, x, y, opts) {
 		// can add new military building whenever it is not more far away than 100 from my faction hotspots and no closer than 100 to enemy hotspots
-		if(type == 'launcher' || type == 'radar') {
-			return population.some(function(hotspot) {
+		if(type=='launcher' || type=='radar') {
+			return (this.countGroup(type, opts.faction) < 5) &&			
+			population.some(function(hotspot) {
 				return hotspot.faction == opts.faction && 
 						VMath.distance([x, y], [hotspot.x, hotspot.y]) < 100;
 			}) && population.every(function(hotspot) {
