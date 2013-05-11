@@ -77,6 +77,9 @@ var world = new (function() {
 	}
 
 	this.run = function() {
+		if(lastUpdate)
+			return;
+		
 		lastUpdate = new Date().getTime();
 		setInterval(update, 10);
 	};
@@ -84,6 +87,9 @@ var world = new (function() {
 	var afterListeners = [];
 	
 	this.after = function(t, fn) {
+		if(!lastUpdate)
+			this.run();
+		
 		afterListeners.push({ t: worldTime+t, fn: fn });
 	}
 	

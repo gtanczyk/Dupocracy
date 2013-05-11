@@ -72,6 +72,25 @@ var UI = new (function() {
 
 		return result;
 	}
+	
+	// ready dialog
+
+	this.readyDialog = function() {
+		var result = new Deferred();
+		
+		this.promptDialog(true);
+		
+		promptDialogNode.innerHTML = '<center><button>Ready</button></center>';
+		
+		promptDialogNode.querySelector('button').addEventListener('click', function() {
+			result.resolve();
+			promptDialog(false);
+		});
+		
+		return result;
+	}
+	
+
 	// context menus
 
 	var currentMenu;

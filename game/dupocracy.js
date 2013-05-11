@@ -99,6 +99,12 @@ var dupocracy = new (function() {
 					if(slot)
 						joinGame(slot).then(function(slot) {
 							if(slot)
+								UI.readyDialog().then(function() {
+									connection.toHost('playerReady', true);
+									UI.showStatus('Waiting for other players');
+									control.resolve(slot);
+								});
+							else
 								control.resolve(slot);
 						});
 				}, {single: true})
@@ -154,8 +160,8 @@ var dupocracy = new (function() {
 	
 		// prepare state
 		GameStates.prepare.then(function() {
-			world.run();
-			
+			UI.hideStatus();
+
 			UI.showStatus('Prepare stage, place launchers and radars.');
 			world.after(2000, function() {
 				UI.hideStatus();
@@ -241,8 +247,6 @@ var dupocracy = new (function() {
 				connection.toClient(clientID, 'yourSlot', body);
 				connection.broadcast('slotTaken', JSON.stringify(players[body]));
 				
-				if(Object.keys(players).length >= 1)
-					connection.broadcast('currentGameState', 'prepare');
 			}			
 		});		
 		
@@ -257,7 +261,25 @@ var dupocracy = new (function() {
 		connection.on('clearSlot', function(header, body) {
 			factionWidget.markSlot(body);
 			delete players[body];
-		});		
+		});
+		
+		// ready in init state
+		
+		connection.hon('playerReady', function(header, body, data, clientID) {
+			var ready = body === 'true';
+			
+			if(Object.keys(players).filter(function(slot) {
+					if(players[slot].clientID == clientID)
+						players[slot].ready = ready;
+					return true;
+				}).every(function(slot) {
+					return players[slot].ready;
+				}))
+					GameStates.init.then(function() {
+						connection.broadcast('currentGameState', 'prepare');
+					});
+		});
+
 		
 		init.resolve(connection);
 	});
