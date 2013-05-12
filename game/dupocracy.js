@@ -17,6 +17,8 @@ DomReady.ready(function() {
 				var gameState = JSON.parse(body);
 				players = gameState.players;
 				world.restore(gameState.world);
+				
+				factionWidget.reset();
 								
 				Object.keys(players).some(function(slot) {
 					factionWidget.markSlot(slot, players[slot].name);
