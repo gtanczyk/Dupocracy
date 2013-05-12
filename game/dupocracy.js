@@ -96,23 +96,22 @@ DomReady.ready(function() {
 				UI.hideStatus(); 
 				
 				connection.toHost('mySelf', name);
-				connection.on('yourSelf', function(header, body, data, listener) {
-					if(!body)
-						UI.nameDialog().then(function(name, result) {
-							connection.toHost('registerSelf', name);
-							var yourSelf = connection.on('yourSelf', function(header, body, data, listener) {
-								result.resolve(true);
-								
-								// clear listener
-								nameTaken.remove();
-							}, {single: true})
-							var nameTaken = connection.on('nameTaken', function(header, body, data, listener) {
-								result.resolve(false, 'This name is already taken by other player.');
-								// clear listener
-								yourSelf.remove(false);
-							}, {single: true});			
-						});
-					}, {single: true});
+				connection.on('whoAreYou', function(header, body, data, listener) {
+					UI.nameDialog().then(function(name, result) {
+						connection.toHost('registerSelf', name);
+						var yourSelf = connection.on('yourSelf', function(header, body, data, listener) {
+							result.resolve(true);
+							
+							// clear listener
+							nameTaken.remove();
+						}, {single: true})
+						var nameTaken = connection.on('nameTaken', function(header, body, data, listener) {
+							result.resolve(false, 'This name is already taken by other player.');
+							// clear listener
+							yourSelf.remove(false);
+						}, {single: true});			
+					});
+				}, {single: true});
 			});
 		});
 	
@@ -275,18 +274,27 @@ DomReady.ready(function() {
 			var clients = [];
 			
 			connection.hon('mySelf', function(header, body, data, clientID) {
-				return connection.toClient(clientID, 'yourSelf', (clients.filter(function(client) { return client.clientID == clientID })[0]||{}).name);
+				var name = (clients.filter(function(client) { return client.clientID == clientID })[0]||{}).name;
+				if(name)
+					connection.toClient(clientID, 'yourSelf', name);
+				else
+				connection.toClient(clientID, 'whoAreYou');
 			});
 	
 			connection.hon('registerSelf', function(header, body, data, clientID) {
 				if (clients.some(function(client) { return client.name == body }))
 					return connection.toClient(clientID, 'nameTaken', body);
 					
-				clients.push({ name: body, clientID: clientID });
+				var client = { name: body, clientID: clientID };
 				
 				connection.toClient(clientID, 'yourSelf', body);
-				connection.broadcast('newClient', body);
+				connection.broadcast('newClient', JSON.stringify(client));
 			});
+			
+			connection.on('newClient', function(header, body) {
+				var client = JSON.parse(body); 
+				clients.push(client);
+			})
 			
 			connection.hon('claimSlot', function(header, body, data, clientID) {
 				if(players[body])

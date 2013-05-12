@@ -155,3 +155,55 @@ body>canvas {
 .worldtime:empty {
 	display: none;
 }
+
+/* chat */
+
+.chat {
+    position: fixed;
+    left: 0px;
+    bottom: 0px;
+    background: rgba(0, 0, 0, 0.5);
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    border-top-right-radius: 5px;
+    box-shadow: inset 0px 0px 5px white;
+    padding: 10px 10px 0px 5px;
+    width: 400px;
+    max-width: 100%;
+    box-sizing: border-box;
+}
+
+.chat .chat-input {
+	position: relative;
+}
+
+.chat .chat-input input {
+	position: absolute;
+	left: 0px;
+	bottom: 100%;
+	right: 50px;
+	top: 0px;
+	height: 20px;
+}
+
+.chat .chat-input button {
+	position: absolute;
+	right: 0px;
+	width: 50px;
+	height: 20px;
+}
+
+.chat .chat-msg {
+	max-height: 200px;
+	 width: 100%;
+	overflow-y: auto;	
+}
+
+.chat .chat-msg input {
+    border: none;
+    background: none;
+    color: white;
+    padding: 2px 3px;
+    display: block;
+    width: 100%;
+    pointer-events: none;
+}
