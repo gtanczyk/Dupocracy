@@ -362,7 +362,7 @@ DomReady.ready(function() {
 						return true;
 					}).every(function(slot) {
 						return players[slot].ready;
-					}))
+					}) && Object.keys(players).length > 1)
 						GameStates.init.then(function() {
 							connection.broadcast('currentGameState', 'prepare');
 						});
