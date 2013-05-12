@@ -1,7 +1,9 @@
 var world = new (function() {
 	var IDserial = 0;
+	var IDmap = {};
 	
 	var launchers = [];
+	var launcherTargets = {};
 	var interceptors = [];
 	var radars = [];
 	var missiles = [];
@@ -20,10 +22,11 @@ var world = new (function() {
 	// store/restore
 	
 	this.store = function() {
-		return { groups: groups, population: population, worldTime: worldTime }; 
+		return { IDserial: IDserial, groups: groups, population: population, worldTime: worldTime }; 
 	}
 	
 	this.restore = function(state) {
+		IDserial = state.IDserial;
 		worldTime = state.worldTime;
 
 		groups = state.groups;
@@ -48,10 +51,21 @@ var world = new (function() {
 		
 		var dt = Math.min(tdt, 0.05);
 		
-		do {	
+		do {
+			launchers.some(function(launcher) {
+				if(launcher.opts.target) {
+					if(launcher.opts.launchTS && (worldTime - launcher.opts.launchTS) < 3000)
+						return;
+					
+					launcher.opts.launchTS = worldTime;
+					add('missile', launcher.x, launcher.y, { tx: launcher.opts.target[0], ty: launcher.opts.target[1], faction: launcher.opts.faction });
+					delete launcher.opts.target;
+				}
+			});
+			
 			missiles.some(function(missile) {
 				missile.ft += dt / 1000;
-				if(missile.ft < 100) {
+				if(missile.ft < 100 && !missile.dead) {
 					if(!missile.V)
 						missile.V = VMath.normalize([ missile.opts.tx - missile.x, missile.opts.ty - missile.y ]);
 					var V = missile.V;
@@ -67,8 +81,47 @@ var world = new (function() {
 						});
 						remove(missile.id);
 					}
-				}			
+					
+					launchers.some(function(launcher) {
+						if(launcher.opts.mode!=0 || launcher.opts.faction == missile.opts.faction)
+							return;
+						
+						var target = launcherTargets[launcher.id];
+						if(!target || VMath.distance([target.x, target.y], [missile.x, missile.y]) < 300) {
+							if(launcher.opts.launchTS && (worldTime - launcher.opts.launchTS) < 3000)
+								return;
+							launcher.opts.launchTS = worldTime;
+							add('interceptor', launcher.x, launcher.y, { targetID: missile.id });					
+						}
+					});
+				} else {
+					missile.dead = true;
+					remove(missile.id);
+				}
+
 			});
+			
+			interceptors.some(function(interceptor) {
+				interceptor.ft += dt / 1000;
+				if(interceptor.ft < 100 && !interceptor.dead) {
+					var target = IDmap[interceptor.opts.targetID];
+					var dP = [ target.x - interceptor.x, target.y - interceptor.y ];
+					var distance = VMath.length(dP);
+					var V = VMath.scale(dP, 1 / distance);
+					interceptor.x = interceptor.x + V[0]*dt/35; 
+					interceptor.y = interceptor.y + V[1]*dt/35;
+					if(distance < 5) {
+						target.dead = true;
+						interceptor.dead = true;
+						remove(interceptor.id);
+						remove(target.id);
+					}
+				} else {
+					interceptor.dead = true;
+					remove(interceptor.id);
+				}
+			});
+			
 			tdt -= dt;
 			dt = Math.min(tdt, 0.05);
 			
@@ -129,18 +182,25 @@ var world = new (function() {
 			}) && population.every(function(hotspot) {
 				return hotspot.faction == opts.faction || 
 				VMath.distance([x, y], [hotspot.x, hotspot.y]) > 100;
-				})
+				})		
 		} else
 			return true;
 	}
 	
 	// control
 	
-	this.add = function(type, x, y, opts) {
+	this.setTarget = function(id, x, y) {
+		IDmap[id].opts.target = [x, y];
+	}
+	
+	var add = this.add = function(type, x, y, opts) {
+		var object = { id: IDserial++, type: type, x: x, y: y, width: 16, height: 16, shape: (type == 'interceptor' ? 'ball' : type == 'launcher' ? 'rect' : 'arc'), ft: 0, opts: opts };
+		IDmap[object.id] = object;
 		(type == 'launcher' ? launchers : 
 		 type == 'radar' ? radars :
 		 type == 'missile' ? missiles :		 
-			[]).push({ id: IDserial++, type: type, x: x, y: y, width: 16, height: 16, shape: (type == 'launcher' ? 'rect' : 'arc'), ft: 0, opts: opts });		
+		 type == 'interceptor' ? interceptors:
+			[]).push(object);
 	};
 	
 	// removal
@@ -195,11 +255,13 @@ var world = new (function() {
 				if(object.dead || !world.visibilityCheck)
 					return;
 				
-				var color = object.selected ? 'yellow' : 'red';
+				var color = object.selected ? 'yellow' : (object.opts.mode==0?'blue':'red');
 				if(object.shape == 'rect')
 					view.fillRect(object.x - object.width/2, object.y - object.height/2, object.width, object.height, color);
 				else if(object.shape == 'arc')
 					view.fillArc(object.x, object.y, object.width / 2, color);
+				else if(object.shape == 'ball')
+					view.fillArc(object.x, object.y, object.width / 8, color);
 			});
 		});
 		

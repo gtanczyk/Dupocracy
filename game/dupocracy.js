@@ -162,6 +162,16 @@ DomReady.ready(function() {
 				if(world.canAdd(body.type, body.x, body.y, body.opts))
 					connection.broadcast('newObject', JSON.stringify(body));
 			});		
+
+			connection.hon('setTarget', function(header, body, data, clientID) {
+				body = JSON.parse(body);
+				connection.broadcast('setTarget', JSON.stringify(body));				
+			});
+			
+			connection.on('setTarget', function(header, body, data, clientID) {
+				body = JSON.parse(body);
+				world.setTarget(body.id, body.x, body.y);
+			});
 					
 			// object removal
 			
@@ -189,7 +199,7 @@ DomReady.ready(function() {
 					Selection.point.then(function(viewX, viewY, worldX, worldY, selection) {
 						if(selection.length == 0)
 							UI.contextMenu(viewX, viewY, [['launcher', 'Launcher'], ['radar', 'Radar']].map(function(el) { return [el[0], el[1] + ' ('+world.countGroup(el[0], mySlot)+'/5)'] })).then(function(option) {
-								connection.toHost("makeObject", JSON.stringify({ type: option, x: worldX, y: worldY, opts: { faction: mySlot } }));
+								connection.toHost("makeObject", JSON.stringify({ type: option, x: worldX, y: worldY, opts: { faction: mySlot, mode: Math.random() > 0.5 ? 1 : 0 } }));
 							});
 					}, GameStates.prepare);
 					
@@ -205,7 +215,7 @@ DomReady.ready(function() {
 					UI.hideStatus();
 				});
 				
-				world.after(60000, function() {
+				world.after(60000 * 10, function() {
 					connection.broadcast('currentGameState', 'end');
 				});
 				
@@ -215,9 +225,8 @@ DomReady.ready(function() {
 							UI.contextMenu(viewX, viewY, [['attack', 'Attack']]).then(function(option) {
 								if(option == 'attack') {
 									selection.some(function(object) {
-										if(object.type == 'launcher')
-											connection.toHost("makeObject", JSON.stringify({ type: 'missile', x: object.x, y: object.y, 
-																							 opts: { tx: worldX, ty: worldY, faction: mySlot } }));
+										if(object.type == 'launcher' && object.opts.mode==1)
+											connection.toHost("setTarget", JSON.stringify({ id: object.id, x: worldX, y: worldY })); 
 									});							
 								}
 							});				
