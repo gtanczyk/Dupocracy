@@ -43,15 +43,19 @@ var world = new (function() {
 	// update
 
 	var lastUpdate;
+	var lag = 0;
 	function update() {
-		var tdt = new Date().getTime() - lastUpdate;			
-		lastUpdate += tdt;
+		var tdt = new Date().getTime() - lastUpdate + lag;
+		lag = 0;
+		lastUpdate = new Date().getTime();
 		worldTime += tdt;
 		
 		while (afterListeners[0] && afterListeners[0].t <= worldTime)
 			afterListeners.splice(0, 1)[0].fn(worldTime);
 		
 		var dt = Math.min(tdt, 0.05);
+		
+		var updateStart = performance.now();
 		
 		do {
 			var i = launchers.length;
@@ -149,7 +153,10 @@ var world = new (function() {
 			
 			tdt -= dt;
 			dt = Math.min(tdt, 0.05);						
-		} while(dt > 0);
+		} while(dt > 0 && (performance.now() - updateStart < 5));
+		
+		lag += tdt;
+		worldTime -= tdt;
 			
 		UI.updateWorldTime(worldTime);
 	}
@@ -160,7 +167,7 @@ var world = new (function() {
 			return;
 		
 		lastUpdate = new Date().getTime();
-		updateInterval = setInterval(update, 10);
+		updateInterval = setInterval(update, 5);
 	};
 	
 	this.stop = function() {
