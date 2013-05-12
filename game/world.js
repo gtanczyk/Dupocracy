@@ -52,18 +52,22 @@ var world = new (function() {
 		var dt = Math.min(tdt, 0.05);
 		
 		do {
-			launchers.some(function(launcher) {
+			var i = launchers.length;
+			while (i--) {
+				var launcher = launchers[i];
 				if(launcher.opts.target) {
-					if(launcher.opts.launchTS && (worldTime - launcher.opts.launchTS) < 3000)
-						return;
+					if(launcher.opts.launchTS && (worldTime - launcher.opts.launchTS) < 2000)
+						continue;
 					
 					launcher.opts.launchTS = worldTime;
 					add('missile', launcher.x, launcher.y, { tx: launcher.opts.target[0], ty: launcher.opts.target[1], faction: launcher.opts.faction });
 					delete launcher.opts.target;
 				}
-			});
+			};
 			
-			missiles.some(function(missile) {
+			var j = missiles.length;
+			while (j--) {
+				var missile = missiles[j];
 				missile.ft += dt / 1000;
 				if(missile.ft < 100 && !missile.dead) {
 					if(!missile.V)
@@ -82,29 +86,32 @@ var world = new (function() {
 						remove(missile.id);
 					}
 					
-					launchers.some(function(launcher) {
-						if(launcher.opts.mode!=0 || launcher.opts.faction == missile.opts.faction)
-							return;
+					var i = launchers.length;
+					while (i--) {
+						launcher = launchers[i];
+						if(launcher.opts.mode!=0 || launcher.opts.faction == missile.opts.faction || launcher.opts.launchTS && (worldTime - launcher.opts.launchTS) < 3000)
+							continue;
 						
-						var target = launcherTargets[launcher.id];
-						if(!target || VMath.distance([target.x, target.y], [missile.x, missile.y]) < 300) {
-							if(launcher.opts.launchTS && (worldTime - launcher.opts.launchTS) < 3000)
-								return;
+						var target = IDmap[launcherTargets[launcher.id]];
+						if(!target && VMath.distance([launcher.x, launcher.y], [missile.x, missile.y]) < 500) {
 							launcher.opts.launchTS = worldTime;
+							launcherTargets[launcher.id] = missile.id;
 							add('interceptor', launcher.x, launcher.y, { targetID: missile.id });					
 						}
-					});
+					};
 				} else {
 					missile.dead = true;
 					remove(missile.id);
 				}
 
-			});
+			};
 			
-			interceptors.some(function(interceptor) {
+			var j = interceptors.length;
+			while (j--) {
+				var interceptor = interceptors[j];
 				interceptor.ft += dt / 1000;
-				if(interceptor.ft < 100 && !interceptor.dead) {
-					var target = IDmap[interceptor.opts.targetID];
+				var target = IDmap[interceptor.opts.targetID];
+				if(interceptor.ft < 100 && !interceptor.dead && target) {					
 					var dP = [ target.x - interceptor.x, target.y - interceptor.y ];
 					var distance = VMath.length(dP);
 					var V = VMath.scale(dP, 1 / distance);
@@ -120,13 +127,13 @@ var world = new (function() {
 					interceptor.dead = true;
 					remove(interceptor.id);
 				}
-			});
+			};
 			
 			tdt -= dt;
-			dt = Math.min(tdt, 0.05);
+			dt = Math.min(tdt, 0.05);						
+		} while(dt > 0);
 			
-			UI.updateWorldTime(worldTime);
-		} while(dt > 0)
+		UI.updateWorldTime(worldTime);
 	}
 
 	var updateInterval;
@@ -212,6 +219,8 @@ var world = new (function() {
 	}
 	
 	var remove = this.remove = function(objectID) {
+		if(IDmap[objectID])
+			delete IDmap[objectID];
 		groups.some(function(group) {
 			if(group.some(function(object, idx) { 
 				if(object.id == objectID) {
