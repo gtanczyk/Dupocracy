@@ -28,11 +28,12 @@ body>canvas {
 	left: 50%;
 	margin-left: -200px;
 	padding: 30px 50px;
-	background: black;
-	box-shadow: inset 0px 0px 15px gold;
 	color: white;
-	border: 1px solid gold;
-	border-radius: 5px;
+
+	background: rgba(0, 0, 0, 0.72);
+	box-shadow: 0px 0px 5px black;
+	border-radius: 10px;
+	border-top: 10px solid #2f3071
 }
 
 .promptDialog .error {
@@ -58,7 +59,7 @@ body>canvas {
 /* buttons */
 
 .promptDialog button {
-	background: rgb(180, 152, 0);
+	background: #2f3071;
 	color: white;
 	border: none;
 	padding: 5px 15px;
@@ -67,7 +68,7 @@ body>canvas {
 }
 
 .promptDialog button:hover {
-	background: rgb(143, 121, 0);
+	background: #1C224E;
 }
 
 /* cotext menu */
@@ -88,18 +89,45 @@ body>canvas {
 	cursor: pointer;
 }
 
+/* dialog heading */
+
+.dialog h3 {
+	background: #2f3071;
+	position: absolute;
+	top: 0px;
+	left: 0px;
+	right: 0px;
+	margin: 0;
+	padding: 0px 10 5px;
+	box-shadow: 0px 0px 5px #2f3071;
+	text-shadow: 0px 0px 5px rgba(255,255,255,0.5);
+}
+
 /* faction widget */
 
 .factionWidget {
 	position: fixed;
-	top: 0px;
-	left: 0px;
+	top: 20%;
+	left: 50%;
 	color: white;
-	width: 200px;
+	width: 600px;
+	margin-left: -300px;
+	padding: 50px;
+	background: rgba(0, 0, 0, 0.72);
+	box-shadow: 0px 0px 5px black;
+	border-radius: 10px;
+	border-top: 10px solid #2f3071
+}
+
+.factionWidget li {
+	display: inline-block;
+	width: 100px;
+	text-align: center;
 }
 
 .factionWidget span {
 	font-weight: normal;
+	display: block;
 }
 
 .factionWidget span button {
@@ -107,11 +135,33 @@ body>canvas {
 	border: none;
 	color: white;
 	font-weight: bold;
-	cursor: pointer;	
+	cursor: pointer;
 }
 
 .factionWidget span button:hover {
 	text-decoration: underline;
+}
+
+.factionWidget span i {
+	opacity: 0.5;
+}
+
+.factionWidget .ready {
+	margin-top: 20px;
+	margin-bottom: -10px;
+}
+
+.factionWidget .ready button {
+	background: #2f3071;
+	color: white;
+	border: none;
+	padding: 5px 15px;
+	cursor: pointer;
+	font-size: large;
+}
+
+.factionWidget .ready button:hover {
+	background: #1C224E;
 }
 
 /* status */
@@ -144,11 +194,13 @@ body>canvas {
 	text-align: center;
 	color: white;
 	top: 0px;
-	right: 0px;
-	padding: 20px;
+	left: 50%;
+	width: 80px;
+	margin-left: -40px;
 	text-shadow: 0px 0px 20px white;
 	box-shadow:  inset 0px 0px 20px white;
 	border-bottom-left-radius: 5px;
+	border-bottom-right-radius: 5px;
 	font-size: large;
 }
 
@@ -162,11 +214,7 @@ body>canvas {
     position: fixed;
     left: 0px;
     bottom: 0px;
-    background: rgba(0, 0, 0, 0.5);
-    border: 1px solid rgba(255, 255, 255, 0.5);
-    border-top-right-radius: 5px;
-    box-shadow: inset 0px 0px 5px white;
-    padding: 10px 10px 0px 5px;
+    padding: 10px 10px 10px 5px;
     width: 400px;
     max-width: 100%;
     box-sizing: border-box;
@@ -174,28 +222,32 @@ body>canvas {
 
 .chat .chat-input {
 	position: relative;
+	height: 10px;
 }
 
 .chat .chat-input input {
 	position: absolute;
 	left: 0px;
-	bottom: 100%;
-	right: 50px;
-	top: 0px;
-	height: 20px;
-}
-
-.chat .chat-input button {
-	position: absolute;
+	bottom: 0px;
 	right: 0px;
-	width: 50px;
-	height: 20px;
+	top: 0px;
+	width: 100%;
+	height: 25px;
+	border: 1px solid #2f3071;
+	background: rgba(47, 48, 113, 0.14);
+	color: white;
+	padding: 2px 3px;
+	font-family: Monospace;
 }
 
 .chat .chat-msg {
 	max-height: 200px;
-	 width: 100%;
-	overflow-y: auto;	
+	width: 100%;
+	overflow-y: hidden;	
+	-webkit-transform: rotate(180deg);
+	-moz-transform: rotate(180deg);
+	transform: rotate(180deg);
+	direction: rtl;
 }
 
 .chat .chat-msg input {
@@ -206,4 +258,12 @@ body>canvas {
     display: block;
     width: 100%;
     pointer-events: none;
+    
+    -webkit-transform: rotate(180deg);
+	-moz-transform: rotate(180deg);
+	transform: rotate(180deg);
+	
+	direction: ltr;
+	
+	font-family: Monospace;
 }

@@ -12,12 +12,13 @@ var world = new (function() {
 	var groups = [ launchers, interceptors, radars, missiles ];
 	
 	// population hotspots aka cities, players should attack/protect them in order to win 
-	var population = [	{ name: 'Berlin', x: 680, y: 170, r: 20, faction: 'europe' },
-						{ name: 'Chicago', x: 260, y: 170, r: 20, faction: 'namerica' },
-						{ name: 'Cape Town', x: 710, y: 470, r: 20, faction: 'africa' },
-						{ name: 'Bejing', x: 1040, y: 250, r: 20, faction: 'asia' },
-						{ name: 'Tokyo', x: 1140, y: 220, r: 20, faction: 'asia' },
-						{ name: 'Rio de janeiro', x: 490, y: 400, r: 20, faction: 'lamerica' }];		
+	var population = [	{ name: 'Moscow', x: 780, y: 130, r: 20, faction: 'Russia' },
+						{ name: 'Berlin', x: 680, y: 170, r: 20, faction: 'Europe' },
+						{ name: 'Chicago', x: 260, y: 170, r: 20, faction: 'North America' },
+						{ name: 'Cape Town', x: 710, y: 470, r: 20, faction: 'Africa' },
+						{ name: 'Bejing', x: 1040, y: 250, r: 20, faction: 'Asia' },
+						{ name: 'Tokyo', x: 1140, y: 220, r: 20, faction: 'Asia' },
+						{ name: 'Rio de janeiro', x: 490, y: 400, r: 20, faction: 'Latin America' }];		
 	
 	// store/restore
 	
@@ -28,6 +29,7 @@ var world = new (function() {
 	this.restore = function(state) {
 		IDserial = state.IDserial;
 		worldTime = state.worldTime;
+		UI.updateWorldTime(state.worldTime);
 
 		groups = state.groups;
 		launchers = groups[0];
@@ -55,8 +57,14 @@ var world = new (function() {
 			var i = launchers.length;
 			while (i--) {
 				var launcher = launchers[i];
+				
+				if(launcher.opts.switchModeTS && (worldTime - launcher.opts.switchModeTS) > 10000) {
+					launcher.opts.mode = (launcher.opts.mode+1)%2;
+					delete launcher.opts.switchModeTS;
+				}
+				
 				if(launcher.opts.target) {
-					if(launcher.opts.launchTS && (worldTime - launcher.opts.launchTS) < 10000)
+					if(launcher.opts.launchTS && (worldTime - launcher.opts.launchTS) < 5000 || launcher.opts.mode==0)
 						continue;
 					
 					launcher.opts.launchTS = worldTime;
@@ -202,6 +210,10 @@ var world = new (function() {
 		IDmap[id].opts.target = [x, y];
 	}
 	
+	this.switchMode = function(id) {
+		IDmap[id].opts.switchModeTS = worldTime;
+	}
+	
 	var add = this.add = function(type, x, y, opts) {
 		var object = { id: IDserial++, type: type, x: x, y: y, width: 16, height: 16, shape: (type == 'interceptor' ? 'ball' : type == 'launcher' ? 'rect' : 'arc'), ft: 0, opts: opts };
 		IDmap[object.id] = object;
@@ -259,7 +271,7 @@ var world = new (function() {
 	this.visibilityCheck = function(object) {
 		return true;
 	}
-
+	
 	this.render = function() {
 		groups.some(function(group) {
 			group.some(function(object) {
@@ -277,7 +289,8 @@ var world = new (function() {
 		});
 		
 		population.some(function(hotspot) {
-			view.fillArc(hotspot.x, hotspot.y, hotspot.r, 'white');
+			var w =  Math.sqrt(hotspot.r) + 5;
+			view.fillRect(hotspot.x-w/2, hotspot.y-w/2, w, w, 'green', Math.PI/4);
 		});
 	};
 	

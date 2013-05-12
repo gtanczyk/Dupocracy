@@ -56,9 +56,16 @@ DomReady.ready(function() {
 			ctx.fillRect(0, 0, viewWidth, viewHeight);
 		}
 		
-		this.fillRect = function(x, y, width, height, color) {
+		this.fillRect = function(x, y, width, height, color, angle) {
 			ctx.fillStyle = color;
-			ctx.fillRect(x, y, width, height);
+			if(angle) {
+				ctx.save()
+				ctx.translate(x, y);
+				ctx.rotate(angle);
+				ctx.fillRect(0, 0, width, height);			
+				ctx.restore();
+			} else
+				ctx.fillRect(x, y, width, height);			
 		}
 		
 		this.fillArc = function(x, y, radius, color) {

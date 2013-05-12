@@ -31,7 +31,7 @@ DomReady.ready(function() {
 					
 					var inputNode = document.createElement('form');
 					inputNode.className = 'chat-input';
-					inputNode.innerHTML = '<input type="text"/><button>Send</button>'
+					inputNode.innerHTML = '<input type="text"/>'
 					chatNode.appendChild(inputNode);
 					
 					inputNode.addEventListener('submit', function(event) {
@@ -50,17 +50,18 @@ DomReady.ready(function() {
 						chatLog.push(line)
 						var node = document.createElement('input');
 						node.value = line;
+						node.disabled = true;
 						msgNode.insertBefore(node, msgNode.firstChild);
 					}
 					
 					connection.on('chatMsg', function(header, body) {
 							var msg = JSON.parse(body);
 							var sender = clients.filter(function(client)  { return client.clientID == msg.clientID })[0].name;
-							addLine('['+sender+'] '+msg.body);
+							addLine(sender+': '+msg.body);
 					});
 				
 					connection.hon('chatMsg', function(header, body, data, clientID) {
-						if(body.length > 1)
+						if(body.length > 0)
 							connection.broadcast('chatMsg', JSON.stringify({ clientID: clientID, body: body }))
 					});
 					
@@ -79,7 +80,7 @@ DomReady.ready(function() {
 					
 					connection.on('newClient', function(header, body) {
 						var client = JSON.parse(body); 												
-						addLine(client.name + ' joins chat');
+						addLine(client.name + ' joins game');
 					});
 				
 				});

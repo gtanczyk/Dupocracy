@@ -4,6 +4,7 @@ DomReady.ready(function() {
 		var connect = new Deferred(true);
 		var init = new Deferred();
 		var control = new Deferred();
+		var named = new Deferred();
 	
 		var factionWidget;
 	
@@ -18,6 +19,9 @@ DomReady.ready(function() {
 				world.restore(gameState.world);
 				
 				factionWidget.reset();
+				named.then(function() {
+					factionWidget.show();
+				});
 				
 				Object.keys(players).some(function(slot) {
 					factionWidget.markSlot(slot, players[slot].name);
@@ -58,7 +62,7 @@ DomReady.ready(function() {
 			return result;
 		}	
 		
-		var factions = [ 'europe', 'africa', 'namerica', 'lamerica', 'asia', 'russia' ];		
+		var factions = [ 'Europe', 'Africa', 'North America', 'Latin America', 'Asia', 'Russia' ];		
 	
 		var players = {};
 		
@@ -93,7 +97,7 @@ DomReady.ready(function() {
 		// init state, name dialog etc.
 		init.then(function(connection) {
 			GameStates.init.then(function() {
-				UI.hideStatus(); 
+				UI.hideStatus(); 				
 				
 				connection.toHost('mySelf', name);
 				connection.on('whoAreYou', function(header, body, data, listener) {
@@ -104,6 +108,8 @@ DomReady.ready(function() {
 							
 							// clear listener
 							nameTaken.remove();
+							
+							named.resolve();
 						}, {single: true})
 						var nameTaken = connection.on('nameTaken', function(header, body, data, listener) {
 							result.resolve(false, 'This name is already taken by other player.');
@@ -117,20 +123,25 @@ DomReady.ready(function() {
 	
 		// client
 	
-		init.then(function(connection) {
-			
-			factionWidget.joinSlot.then(function(slot) {
+		init.then(function(connection) {	
+			named.then(function() {
 				GameStates.init.then(function() {
-					joinGame(slot).then(function(slot) {
-						factionWidget.clearAll();
-						if(slot)
-							UI.readyDialog().then(function() {
-								connection.toHost('playerReady', true);
-								UI.showStatus('Waiting for other players');
+//					factionWidget.reset();
+					factionWidget.show();
+					factionWidget.joinSlot.then(function(slot) {
+	//					factionWidget.hide();
+						joinGame(slot).then(function(slot) {
+							factionWidget.clearAll();
+							if(slot)
+								factionWidget.ready().then(function() {
+									factionWidget.hide();
+									connection.toHost('playerReady', true);
+									UI.showStatus('Waiting for other players');
+									control.resolve(slot);
+								});
+							else
 								control.resolve(slot);
-							});
-						else
-							control.resolve(slot);
+						});
 					});
 				});
 			});
@@ -161,6 +172,8 @@ DomReady.ready(function() {
 				if(world.canAdd(body.type, body.x, body.y, body.opts))
 					connection.broadcast('newObject', JSON.stringify(body));
 			});		
+			
+			// targets
 
 			connection.hon('setTarget', function(header, body, data, clientID) {
 				body = JSON.parse(body);
@@ -171,6 +184,17 @@ DomReady.ready(function() {
 				body = JSON.parse(body);
 				world.setTarget(body.id, body.x, body.y);
 			});
+			
+			// mode switch
+			
+			connection.hon('switchMode', function(header, body, data, clientID) {
+				connection.broadcast('switchMode', body);				
+			});
+			
+			connection.on('switchMode', function(header, body, data, clientID) {
+				world.switchMode(body);
+			});
+
 					
 			// object removal
 			
@@ -221,12 +245,20 @@ DomReady.ready(function() {
 				control.then(function(mySlot) {	
 					Selection.point.then(function(viewX, viewY, worldX, worldY, selection) {
 						if(selection.length > 0)
-							UI.contextMenu(viewX, viewY, [['attack', 'Attack']]).then(function(option) {
+							UI.contextMenu(viewX, viewY, [['attack', 'Attack'], ['defend', 'Defend']]).then(function(option) {
 								if(option == 'attack') {
 									selection.some(function(object) {
-										if(object.type == 'launcher' && object.opts.mode==1)
-											connection.toHost("setTarget", JSON.stringify({ id: object.id, x: worldX, y: worldY })); 
+										if(object.type == 'launcher') { 											
+											if(object.opts.mode==0)
+												connection.toHost("switchMode", object.id);											
+											connection.toHost("setTarget", JSON.stringify({ id: object.id, x: worldX, y: worldY }));										
+										}
 									});							
+								} else if(option == 'defend') {
+									selection.some(function(object) {
+										if(object.type == 'launcher' && object.opts.mode==1)
+											connection.toHost("switchMode", object.id); 
+									});																
 								}
 							});				
 					}, GameStates.warfare);			

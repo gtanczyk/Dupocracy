@@ -8,14 +8,23 @@ DomReady.ready(function() {
 			var joinSlot = this.joinSlot = new Deferred();	
 		
 			var node = document.createElement('div');
-			node.className = 'factionWidget';
+			node.className = 'factionWidget dialog';
+			node.style.display = 'none';
 			
 			var factionNode;
+			
+			this.show = function() {
+				node.style.display = 'block';
+			}
+			
+			this.hide = function() {
+				node.style.display = 'none';
+			}			
 			
 			this.reset = function() {
 				joinSlot.clear();
 			
-				node.innerHTML = '';
+				node.innerHTML = '<h3>Select continent</h3>';
 				factionNode = factions.reduce(function(r, faction) {
 					var el = document.createElement('li');
 					el.innerHTML = escapeHTML(faction) + '<span><button>Join</button></span>';
@@ -34,7 +43,7 @@ DomReady.ready(function() {
 			
 			var markSlot = this.markSlot = function(slot, name) {
 				name = escapeHTML(name);
-				factionNode[slot].querySelector('span').innerHTML = name && (' ('+ name +')') || '';
+				factionNode[slot].querySelector('span').innerHTML = name && (' '+ name +'') || '<i>empty</i>';
 			}
 			
 			var clearSlot = this.clearSlot = function(slot, name) {
@@ -48,6 +57,23 @@ DomReady.ready(function() {
 				});
 			}			
 			
+			// ready dialog
+	
+			this.ready = function() {
+				var result = new Deferred();
+				
+				var readyNode = document.createElement('center');
+				readyNode.className = 'ready';
+				readyNode.innerHTML = '<button>Ready</button>';				
+				readyNode.querySelector('button').addEventListener('click', function() {
+					result.resolve();
+					node.removeChild(readyNode);
+				});
+				
+				node.appendChild(readyNode);
+				
+				return result;
+			}
 		};				
 		
 		// mask
@@ -60,7 +86,7 @@ DomReady.ready(function() {
 		// prompt dialog
 		
 		var promptDialogNode = document.createElement('div');
-		promptDialogNode.className = 'promptDialog';
+		promptDialogNode.className = 'promptDialog dialog';
 		var promptDialog = this.promptDialog = function(enabled) {
 			mask(enabled);
 			this.toggleNode(promptDialogNode, enabled);
@@ -72,7 +98,7 @@ DomReady.ready(function() {
 			
 			this.promptDialog(true);
 
-			promptDialogNode.innerHTML = '<center><label>Enter your name:</label>'+
+			promptDialogNode.innerHTML = '<h3>Enter your name</h3><center>'+
 	                '<input type="text" name="name" placeholder="Type your name here" />'+
 	                '<button>Join</button>'+
 	                '<p class="error"> </p></center>';
@@ -91,25 +117,7 @@ DomReady.ready(function() {
 	        }, false);        	    	        
 	
 			return result;
-		}
-		
-		// ready dialog
-	
-		this.readyDialog = function() {
-			var result = new Deferred();
-			
-			this.promptDialog(true);
-			
-			promptDialogNode.innerHTML = '<center><button>Ready</button></center>';
-			
-			promptDialogNode.querySelector('button').addEventListener('click', function() {
-				result.resolve();
-				promptDialog(false);
-			});
-			
-			return result;
-		}
-		
+		}			
 	
 		// context menus
 	
@@ -181,6 +189,11 @@ DomReady.ready(function() {
 		wtEl.className = 'worldtime';
 		this.toggleNode(wtEl, true);
 		this.updateWorldTime = function(t) {
+			if(!(t>0))
+				return this.toggleNode(wtEl, false);
+			else
+				this.toggleNode(wtEl, true);
+				
 			t = (t/1000) << 0;
 			wtEl.innerHTML = ((t/60) << 0) + ":" + (((t%60) < 10 ? '0' : '')+(t%60));
 		}
