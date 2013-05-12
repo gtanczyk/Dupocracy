@@ -56,7 +56,7 @@ var world = new (function() {
 			while (i--) {
 				var launcher = launchers[i];
 				if(launcher.opts.target) {
-					if(launcher.opts.launchTS && (worldTime - launcher.opts.launchTS) < 2000)
+					if(launcher.opts.launchTS && (worldTime - launcher.opts.launchTS) < 10000)
 						continue;
 					
 					launcher.opts.launchTS = worldTime;
@@ -89,11 +89,12 @@ var world = new (function() {
 					var i = launchers.length;
 					while (i--) {
 						launcher = launchers[i];
-						if(launcher.opts.mode!=0 || launcher.opts.faction == missile.opts.faction || launcher.opts.launchTS && (worldTime - launcher.opts.launchTS) < 3000)
+						if(launcher.opts.mode!=0 || launcher.opts.faction == missile.opts.faction || launcher.opts.launchTS && (worldTime - launcher.opts.launchTS) < 2000)
 							continue;
 						
 						var target = IDmap[launcherTargets[launcher.id]];
-						if(!target && VMath.distance([launcher.x, launcher.y], [missile.x, missile.y]) < 500) {
+						if(!target && VMath.distance([launcher.x, launcher.y], [missile.x, missile.y]) < 500 ||
+							target && launcher.opts.launchTS && (worldTime - launcher.opts.launchTS) > 2000) {
 							launcher.opts.launchTS = worldTime;
 							launcherTargets[launcher.id] = missile.id;
 							add('interceptor', launcher.x, launcher.y, { targetID: missile.id });					
@@ -111,13 +112,14 @@ var world = new (function() {
 				var interceptor = interceptors[j];
 				interceptor.ft += dt / 1000;
 				var target = IDmap[interceptor.opts.targetID];
-				if(interceptor.ft < 100 && !interceptor.dead && target) {					
-					var dP = [ target.x - interceptor.x, target.y - interceptor.y ];
+				var dP = target ? [ target.x - interceptor.x, target.y - interceptor.y ] :
+								  interceptor.V;
+				if((target && interceptor.ft < 20 || !target && interceptor.ft < 10) && !interceptor.dead && dP) {										
 					var distance = VMath.length(dP);
-					var V = VMath.scale(dP, 1 / distance);
+					var V = interceptor.V = VMath.scale(dP, 1 / distance);
 					interceptor.x = interceptor.x + V[0]*dt/35; 
 					interceptor.y = interceptor.y + V[1]*dt/35;
-					if(distance < 5) {
+					if(target && distance < 5) {
 						target.dead = true;
 						interceptor.dead = true;
 						remove(interceptor.id);
