@@ -17,12 +17,7 @@ DomReady.ready(function() {
 				var gameState = JSON.parse(body);
 				players = gameState.players;
 				world.restore(gameState.world);
-				
-				factionWidget.reset();
-				named.then(function() {
-					factionWidget.show();
-				});
-				
+								
 				Object.keys(players).some(function(slot) {
 					factionWidget.markSlot(slot, players[slot].name);
 				});		
@@ -37,7 +32,27 @@ DomReady.ready(function() {
 				}
 				
 				connection.toClient(clientID, 'newGameState', JSON.stringify(gameState));
-			});				
+			});		
+			
+			connection.toHost('mySelf');
+			connection.on('whoAreYou', function(header, body, data, listener) {
+				UI.nameDialog().then(function(name, result) {
+					connection.toHost('registerSelf', name);
+					var yourSelf = connection.on('yourSelf', function(header, body, data, listener) {
+						result.resolve(true);
+						
+						// clear listener
+						nameTaken.remove();
+						
+						named.resolve();
+					}, {single: true})
+					var nameTaken = connection.on('nameTaken', function(header, body, data, listener) {
+						result.resolve(false, 'This name is already taken by other player.');
+						// clear listener
+						yourSelf.remove(false);
+					}, {single: true});			
+				});
+			}, {single: true});
 		});
 		
 		function getFreeSlots() {
@@ -98,26 +113,6 @@ DomReady.ready(function() {
 		init.then(function(connection) {
 			GameStates.init.then(function() {
 				UI.hideStatus(); 				
-				
-				connection.toHost('mySelf', name);
-				connection.on('whoAreYou', function(header, body, data, listener) {
-					UI.nameDialog().then(function(name, result) {
-						connection.toHost('registerSelf', name);
-						var yourSelf = connection.on('yourSelf', function(header, body, data, listener) {
-							result.resolve(true);
-							
-							// clear listener
-							nameTaken.remove();
-							
-							named.resolve();
-						}, {single: true})
-						var nameTaken = connection.on('nameTaken', function(header, body, data, listener) {
-							result.resolve(false, 'This name is already taken by other player.');
-							// clear listener
-							yourSelf.remove(false);
-						}, {single: true});			
-					});
-				}, {single: true});
 			});
 		});
 	
@@ -126,10 +121,9 @@ DomReady.ready(function() {
 		init.then(function(connection) {	
 			named.then(function() {
 				GameStates.init.then(function() {
-//					factionWidget.reset();
+					factionWidget.reset();
 					factionWidget.show();
 					factionWidget.joinSlot.then(function(slot) {
-	//					factionWidget.hide();
 						joinGame(slot).then(function(slot) {
 							factionWidget.clearAll();
 							if(slot)
@@ -310,7 +304,7 @@ DomReady.ready(function() {
 				if(name)
 					connection.toClient(clientID, 'yourSelf', name);
 				else
-				connection.toClient(clientID, 'whoAreYou');
+					connection.toClient(clientID, 'whoAreYou');
 			});
 	
 			connection.hon('registerSelf', function(header, body, data, clientID) {

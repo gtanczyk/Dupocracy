@@ -91,6 +91,14 @@ var world = new (function() {
 							if(VMath.distance([missile.x, missile.y], [hotspot.x, hotspot.y]) < hotspot.r)
 								hotspot.r *= 0.8;
 						});
+						launchers.some(function(launcher) {
+							if(VMath.distance([missile.x, missile.y], [launcher.x, launcher.y]) < 8)
+								remove(launcher.id);
+						});
+						radars.some(function(radar) {
+							if(VMath.distance([missile.x, missile.y], [radar.x, radar.y]) < 8)
+								remove(launcher.id);
+						});
 						remove(missile.id);
 					}
 					
