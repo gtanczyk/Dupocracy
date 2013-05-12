@@ -123,7 +123,6 @@ DomReady.ready(function() {
 		init.then(function(connection) {	
 			GameStates.init.then(function() {
 				named.then(function() {
-					factionWidget.reset();
 					factionWidget.show();
 					factionWidget.joinSlot.once(function(slot) {
 						joinGame(slot).once(function(slot) {

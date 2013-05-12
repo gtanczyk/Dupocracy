@@ -22,7 +22,7 @@ DomReady.ready(function() {
 			}			
 			
 			this.reset = function() {
-				joinSlot = this.joinSlot = new Deferred();	
+				joinSlot = this.joinSlot = new Deferred();
 			
 				node.innerHTML = '<h3>Select continent</h3>';
 				factionNode = factions.reduce(function(r, faction) {
