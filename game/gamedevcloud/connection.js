@@ -10,7 +10,15 @@
 			if (header == 'client')
 				this.clientID = body;
 		}.bind(this));
-
+		
+		this.hon('ping', function(header, body, data, clientID) {
+			setTimeout(this.toClient.bind(this, clientID, 'pong'), 1000);
+		}.bind(this));
+		
+		this.on(/^(.*)$/, function(header, body) {
+			setInterval(this.toHost.bind(this, 'ping'), 1000);
+		}.bind(this), { single: true });
+		
 		if(this.socketURL=='loopback')
 			this.loopback();
 		else
@@ -18,7 +26,7 @@
 				this.socket = socket;
 				
 				this.socket.onerror = this.socket.onclose = this.closeSocket
-						.bind(this);
+						.bind(this);								
 	
 				this.socket.onmessage = function(event) {
 					var header = event.data.substring(0, event.data
@@ -26,7 +34,7 @@
 					var body = event.data
 							.substring(event.data.indexOf(':') + 1);
 					this.receive(header, body, event.data);
-				}.bind(this);
+				}.bind(this);								
 			} catch (e) {
 				this.closeSocket();
 			}

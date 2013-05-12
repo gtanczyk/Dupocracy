@@ -342,13 +342,12 @@ DomReady.ready(function() {
 			connection.hon('leave', function(header, body, data, clientID) {
 				Object.keys(players).some(function(faction) {
 					if(players[faction].clientID == clientID)
-						connection.broadcast('clearSlot', faction);
-					
+						connection.broadcast('clearSlot', faction);					
 				})
 			});
 			
 			connection.on('clearSlot', function(header, body) {
-				factionWidget.markSlot(body);
+				factionWidget.clearSlot(body);
 				delete players[body];
 			});
 			
@@ -373,10 +372,12 @@ DomReady.ready(function() {
 			init.resolve(connection);
 		});
 		
-		Host.getConnection.then(function(connection) {
+		Host.getConnection.then(function(connection) {			
+			
 			// debug
-			connection.on(/(.*)/, function() {
-				console.log("debug:", arguments)
+			connection.on(/(.*)/, function(header) {
+				if(arguments[1]!='ping:' && arguments[0]!='pong')
+					console.log("debug:", arguments)
 			});
 			
 			connection.on(/(.*)/, function() {
