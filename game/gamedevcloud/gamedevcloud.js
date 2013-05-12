@@ -67,9 +67,21 @@
 	Deferred.prototype.then = function(fn, check) {
 		if (typeof this.result != 'undefined' && !check)
 			fn.apply(null, this.result);
-		else
-			this.listeners.push({fn: fn, check: check});
+		else {
+			var listener = {fn: fn, check: check};
+			this.listeners.push(listener)
+			return listener;
+		}
 	}
+	
+	Deferred.prototype.once = function(fn) {
+		var listener;
+		listener = this.then(function() {
+			if(listener)
+				this.listeners.splice(this.listeners.indexOf(listener), 1);
+			fn.apply(null, this.result);
+		}.bind(this));
+	}	
 	
 	Deferred.prototype.resolved = function() {
 		return typeof this.result != 'undefined';

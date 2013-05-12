@@ -64,14 +64,14 @@ DomReady.ready(function() {
 		function joinGame(slot) {
 			var result = new Deferred();
 			
-			connect.then(function(connection) {
+			connect.once(function(connection) {
 				connection.toHost('claimSlot', slot);
 				connection.on('yourSlot', function(header, body, data) {
 					result.resolve(body);
 				}, { single: true });
 				connection.on('slotAlreadyTaken', function() {
 					result.resolve(false);
-				});
+				}, { single: true });
 			});
 			
 			return result;
@@ -119,12 +119,12 @@ DomReady.ready(function() {
 		// client
 	
 		init.then(function(connection) {	
-			named.then(function() {
-				GameStates.init.then(function() {
+			GameStates.init.then(function() {
+				named.then(function() {
 					factionWidget.reset();
 					factionWidget.show();
-					factionWidget.joinSlot.then(function(slot) {
-						joinGame(slot).then(function(slot) {
+					factionWidget.joinSlot.once(function(slot) {
+						joinGame(slot).once(function(slot) {
 							factionWidget.clearAll();
 							if(slot)
 								factionWidget.ready().then(function() {
