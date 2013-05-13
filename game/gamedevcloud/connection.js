@@ -109,7 +109,7 @@
 	};
 
 	Connection.prototype.toHost = function(header, body, callback) {
-		if (this.isHost)
+		if (this.isHost && header != 'ping')
 			setTimeout(function() {
 				this.receive(this.clientID, header + ":"
 						+ (body != null ? body : ''));
