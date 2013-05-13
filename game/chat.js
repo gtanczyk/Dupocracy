@@ -11,7 +11,9 @@ DomReady.ready(function() {
 			
 			connection.on('newClient', function(header, body) {
 				var client = JSON.parse(body); 
-				clients.push(client);
+				var clientID = client.clientID;
+				if(clients.every(function(client) { return client.clientID != clientID }))
+					clients.push(client);
 			});
 			
 			connection.on('yourSelf', function(header, mySelf) {
@@ -79,8 +81,18 @@ DomReady.ready(function() {
 					});
 					
 					connection.on('newClient', function(header, body) {
-						var client = JSON.parse(body); 												
+						var client = JSON.parse(body); 
 						addLine(client.name + ' joins game');
+					});
+					
+					connection.hon('leave', function(header, body) {
+						var clientID = body; 			
+						clients = clients.filter(function(client) {
+							if(client.clientID == clientID)
+								addLine(client.name + ' leaves game');
+							else 
+								return true;
+						});						
 					});
 				
 				});

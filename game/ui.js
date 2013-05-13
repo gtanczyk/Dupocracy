@@ -43,7 +43,11 @@ DomReady.ready(function() {
 			
 			var markSlot = this.markSlot = function(slot, name) {
 				name = escapeHTML(name);
-				factionNode[slot].querySelector('span').innerHTML = name && (' '+ name +'') || '<i>empty</i>';
+				factionNode[slot].querySelector('span').innerHTML = name && (' '+ name +'') || '<button>Join</button>';
+				if(!name)
+					factionNode[slot].querySelector('button').addEventListener('click', function() {
+						joinSlot.resolve(slot);
+					});
 			}
 			
 			var clearSlot = this.clearSlot = function(slot, name) {

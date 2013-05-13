@@ -323,6 +323,12 @@ DomReady.ready(function() {
 				clients.push(client);
 			})
 			
+			connection.on('remClient', function(header, clientID) {
+				clients = clients.filter(function(client) {
+					return client.clientID != clientID;
+				});
+			})
+			
 			connection.hon('claimSlot', function(header, body, data, clientID) {
 				if(players[body])
 					return connection.toClient(clientID, 'slotAlreadyTaken');
@@ -340,14 +346,15 @@ DomReady.ready(function() {
 			});		
 			
 			connection.hon('leave', function(header, body, data, clientID) {
+				connection.broadcast('remClient', clientID);
 				Object.keys(players).some(function(faction) {
-					if(players[faction].clientID == clientID)
-						connection.broadcast('clearSlot', faction);					
+					if(players[faction].clientID == clientID)					
+						connection.broadcast('clearSlot', faction);
 				})
 			});
 			
 			connection.on('clearSlot', function(header, body) {
-				factionWidget.clearSlot(body);
+				factionWidget.clearSlot(body);				
 				delete players[body];
 			});
 			
