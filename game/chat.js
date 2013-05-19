@@ -21,8 +21,12 @@ DomReady.ready(function() {
 				connection.toHost('clients');
 
 				connection.on('clients', function(header, body) {
-					clients.push.apply(clients, JSON.parse(body));
-
+					
+					JSON.parse(body).some(function(newClient) {
+						if(clients.every(function(client) { return client.clientID != newClient.clientID }))
+							clients.push(newClient);
+					});				
+					
 					var chatNode = document.createElement('div');
 					chatNode.className = 'chat';
 					document.body.appendChild(chatNode);
@@ -77,6 +81,8 @@ DomReady.ready(function() {
 					});
 					
 					connection.hon('chatLog', function(header, body, data, clientID) {
+						if(chatLog.length == 0)
+							chatLog = [mySelf + ' creates room'];
 						connection.toClient(clientID, 'chatLog', JSON.stringify(chatLog.slice(0, 100)));
 					});
 					
