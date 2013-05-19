@@ -169,11 +169,7 @@ DomReady.ready(function() {
 					body.id = world.nextID();
 					connection.broadcast('newObject', JSON.stringify(body));
 				}
-			});		
-			
-			world.onAdd(function(type, x, y, opts) {
-				connection.toHost('makeObject', JSON.stringify({ type: type, x: x, y: y, opts: opts }));
-			});
+			});					
 			
 			// targets
 
@@ -230,6 +226,10 @@ DomReady.ready(function() {
 					
 					Selection.filter.resolve(mySlot);
 					
+					world.onAdd(function(type, x, y, opts) {
+						if(mySlot && opts.faction == mySlot)
+							connection.toHost('makeObject', JSON.stringify({ type: type, x: x, y: y, opts: opts }));
+					});
 				});
 			});
 			
