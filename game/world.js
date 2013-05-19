@@ -59,116 +59,7 @@ var world = new (function() {
 		
 		var dt = Math.min(tdt, 0.05);
 		
-		var updateStart = performance.now();
-		
-		function updateLaunchers(dt) {
-			var i = launchers.length;
-			while (i--) {
-				var launcher = launchers[i];
-				
-				if(launcher.opts.switchModeTS && (worldTime - launcher.opts.switchModeTS) > 10000) {
-					launcher.opts.mode = (launcher.opts.mode+1)%2;
-					delete launcher.opts.switchModeTS;
-				}
-				
-				if(launcher.opts.target) {
-					if(launcher.opts.launchTS && (worldTime - launcher.opts.launchTS) < 5000 || launcher.opts.mode==0)
-						continue;
-					
-					launcher.opts.launchTS = worldTime;
-					add('missile', launcher.x, launcher.y, { tx: launcher.opts.target[0], ty: launcher.opts.target[1], faction: launcher.opts.faction });
-					delete launcher.opts.target;
-				}
-			};
-		}
-		
-		function updateMissiles(dt) {
-			var j = missiles.length;
-			while (j--) {
-				var missile = missiles[j];
-				missile.ft += dt / 1000;
-				if(missile.ft < 100 && !missile.dead) {
-					if(!missile.V)
-						missile.V = VMath.normalize([ missile.opts.tx - missile.x, missile.opts.ty - missile.y ]);
-					var V = missile.V;
-					missile.x = missile.x + V[0]*dt/40; 
-					missile.y = missile.y + V[1]*dt/40;
-					
-					if(VMath.length([ missile.opts.tx - missile.x, missile.opts.ty - missile.y ]) < 10 && !missile.dead) {
-						missile.V = [0, 0]
-						missile.dead = true;
-						population.some(function(hotspot) {
-							if(VMath.distance([missile.x, missile.y], [hotspot.x, hotspot.y]) < hotspot.r)
-								hotspot.r *= 0.8;
-						});
-						launchers.some(function(launcher) {
-							if(VMath.distance([missile.x, missile.y], [launcher.x, launcher.y]) < 8)
-								remove(launcher.id);
-						});
-						radars.some(function(radar) {
-							if(VMath.distance([missile.x, missile.y], [radar.x, radar.y]) < 8)
-								remove(launcher.id);
-						});
-						remove(missile.id);
-					}
-					
-					triggerInterceptors(dt, missile);
-										
-				} else {
-					missile.dead = true;
-					remove(missile.id);
-				}
-
-			};
-		};
-		
-		function triggerInterceptors(dt, missile) {
-			var i = launchers.length;
-			while (i--) {
-				var launcher = launchers[i];
-				if(launcher.opts.mode!=0 || launcher.opts.faction == missile.opts.faction || 
-					launcher.opts.launchTS && (worldTime - launcher.opts.launchTS) < 2000)
-					continue;
-				
-				updateLauncher(launcher, dt, missile);
-			};
-		}
-		
-		function updateLauncher(launcher, dt, missile) {
-			var target = IDmap[launcherTargets[launcher.id]];
-			if(!target && VMath.distance([launcher.x, launcher.y], [missile.x, missile.y]) < 500 ||
-				target && launcher.opts.launchTS && (worldTime - launcher.opts.launchTS) > 2000) {
-				launcher.opts.launchTS = worldTime;
-				launcherTargets[launcher.id] = missile.id;
-				add('interceptor', launcher.x, launcher.y, { targetID: missile.id, faction: launcher.opts.faction });					
-			}
-		}
-		
-		function updateInterceptors(dt) {
-			var j = interceptors.length;
-			while (j--) {
-				var interceptor = interceptors[j];
-				interceptor.ft += dt / 1000;
-				var target = IDmap[interceptor.opts.targetID];
-				var dP = target ? [ target.x - interceptor.x, target.y - interceptor.y ] :
-								  interceptor.V;
-				if((target && interceptor.ft < 20 || !target && interceptor.ft < 10) && !interceptor.dead && dP) {										
-					var distance = VMath.length(dP);
-					var V = interceptor.V = VMath.scale(dP, 1 / distance);
-					interceptor.x = interceptor.x + V[0]*dt/35; 
-					interceptor.y = interceptor.y + V[1]*dt/35;
-					if(target && distance < 5) {
-						target.dead = true;
-						interceptor.dead = true;
-						remove(interceptor.id);
-						remove(target.id);
-					}
-				} else {
-					interceptor.dead = true;
-					remove(interceptor.id);
-				}
-			};
-		}
+		var updateStart = performance.now();		
 		
 		do {
 			
@@ -176,7 +67,9 @@ var world = new (function() {
 			
 			updateMissiles(dt);
 			
-			updateInterceptors(dt);
+			triggerInterceptors(worldTime+dt, dt);
+			
+			updateInterceptors(dt);												
 			
 			tdt -= dt;
 			dt = Math.min(tdt, 0.05);						
@@ -186,6 +79,120 @@ var world = new (function() {
 		worldTime -= tdt;
 			
 		UI.updateWorldTime(worldTime);
+	}
+	
+	function updateLaunchers(dt) {
+		var i = launchers.length;
+		while (i--) {
+			var launcher = launchers[i];
+			
+			if(launcher.opts.switchModeTS && (worldTime - launcher.opts.switchModeTS) > 10000) {
+				launcher.opts.mode = (launcher.opts.mode+1)%2;
+				delete launcher.opts.switchModeTS;
+			}
+			
+			if(launcher.opts.target) {
+				if(launcher.opts.launchTS && (worldTime - launcher.opts.launchTS) < 5000 || launcher.opts.mode==0)
+					continue;
+				
+				launcher.opts.launchTS = worldTime;
+				add('missile', launcher.x, launcher.y, { tx: launcher.opts.target[0], ty: launcher.opts.target[1], faction: launcher.opts.faction });
+				delete launcher.opts.target;
+			}
+		};
+	}
+	
+	function updateMissiles(dt) {
+		var j = missiles.length;
+		while (j--) {
+			var missile = missiles[j];
+			missile.ft += dt / 1000;
+			if(missile.ft < 100 && !missile.dead) {
+				if(!missile.V)
+					missile.V = VMath.normalize([ missile.opts.tx - missile.x, missile.opts.ty - missile.y ]);
+				var V = missile.V;
+				missile.x = missile.x + V[0]*dt/40; 
+				missile.y = missile.y + V[1]*dt/40;
+				
+				if(VMath.length([ missile.opts.tx - missile.x, missile.opts.ty - missile.y ]) < 10 && !missile.dead) {
+					missile.V = [0, 0]
+					missile.dead = true;
+					population.some(function(hotspot) {
+						if(VMath.distance([missile.x, missile.y], [hotspot.x, hotspot.y]) < hotspot.r)
+							hotspot.r *= 0.8;
+					});
+					launchers.some(function(launcher) {
+						if(VMath.distance([missile.x, missile.y], [launcher.x, launcher.y]) < 8)
+							remove(launcher.id);
+					});
+					radars.some(function(radar) {
+						if(VMath.distance([missile.x, missile.y], [radar.x, radar.y]) < 8)
+							remove(launcher.id);
+					});
+					remove(missile.id);
+				}					
+									
+			} else {
+				missile.dead = true;
+				remove(missile.id);
+			}
+
+		};
+	};
+	
+	function triggerInterceptors(worldTime, dt) {
+		var i = launchers.length;
+		while (i--) {
+			var launcher = launchers[i];
+			if(launcher.opts.nextTickTS  > worldTime || launcher.opts.mode!=0 || 
+				launcher.opts.nextLaunchTS > worldTime)
+				continue;
+			
+			launcher.opts.nextTickTS = worldTime + 2000;
+			
+			var j = missiles.length;
+			while (j--) {
+				var missile = missiles[j];	
+				if(launcher.opts.faction != missile.opts.faction)
+					updateLauncher(launcher, worldTime, dt, missile);
+			}
+		};
+	}
+	
+	function updateLauncher(launcher, worldTime, dt, missile) {
+		var target = IDmap[launcherTargets[launcher.id]];
+		if(!target && VMath.distance([launcher.x, launcher.y], [missile.x, missile.y]) < 500 ||
+			target && launcher.opts.nextLaunchTS < worldTime) {
+			launcher.opts.nextLaunchTS = worldTime + 2000;
+			launcherTargets[launcher.id] = missile.id;
+			add('interceptor', launcher.x, launcher.y, { targetID: missile.id, faction: launcher.opts.faction });					
+		}
+	}
+	
+	function updateInterceptors(dt) {
+		var j = interceptors.length;
+		while (j--) {
+			var interceptor = interceptors[j];
+			interceptor.ft += dt / 1000;
+			var target = IDmap[interceptor.opts.targetID];
+			var dP = target ? [ target.x - interceptor.x, target.y - interceptor.y ] :
+							  interceptor.V;
+			if((target && interceptor.ft < 20 || !target && interceptor.ft < 10) && !interceptor.dead && dP) {										
+				var distance = VMath.length(dP);
+				var V = interceptor.V = VMath.scale(dP, 1 / distance);
+				interceptor.x = interceptor.x + V[0]*dt/35; 
+				interceptor.y = interceptor.y + V[1]*dt/35;
+				if(target && distance < 5) {
+					target.dead = true;
+					interceptor.dead = true;
+					remove(interceptor.id);
+					remove(target.id);
+				}
+			} else {
+				interceptor.dead = true;
+				remove(interceptor.id);
+			}
+		};
 	}
 
 	var updateInterval;
