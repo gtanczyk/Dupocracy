@@ -56,7 +56,7 @@ var world = new (function() {
 		while (afterListeners[0] && afterListeners[0].t <= worldTime)
 			afterListeners.splice(0, 1)[0].fn(worldTime);
 		
-		var dt = Math.min(tdt, 0.05);
+		var dt = Math.min(tdt, 0.1);
 		
 		var updateStart = performance.now();		
 		
@@ -71,10 +71,10 @@ var world = new (function() {
 			updateInterceptors(dt);												
 			
 			tdt -= dt;
-			dt = Math.min(tdt, 0.05);
+			dt = Math.min(tdt, 0.1);
 			
 			worldTime += dt;
-		} while(dt > 0 && (performance.now() - updateStart < 5));
+		} while(dt > 0 && (performance.now() - updateStart < 10));
 		
 		lag += tdt;
 		worldTime -= tdt;
@@ -201,7 +201,7 @@ var world = new (function() {
 			return;
 		
 		lastUpdate = new Date().getTime();
-		updateInterval = setInterval(update, 5);
+		updateInterval = setInterval(update, 1);
 	};
 	
 	this.stop = function() {
