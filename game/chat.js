@@ -80,10 +80,11 @@ DomReady.ready(function() {
 						});
 					});
 					
-					connection.hon('chatLog', function(header, body, data, clientID) {
+					connection.hon('chatLog', function(header, body, data, clientID) {					
 						if(chatLog.length == 0)
-							chatLog = [mySelf + ' creates room'];
-						connection.toClient(clientID, 'chatLog', JSON.stringify(chatLog.slice(0, 100)));
+							addLine(mySelf + ' creates room');
+						else
+							connection.toClient(clientID, 'chatLog', JSON.stringify(chatLog.slice(0, 100)));
 					});
 					
 					connection.on('newClient', function(header, body) {
