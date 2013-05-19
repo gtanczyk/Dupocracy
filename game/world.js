@@ -52,7 +52,6 @@ var world = new (function() {
 		var tdt = new Date().getTime() - lastUpdate + lag;
 		lag = 0;
 		lastUpdate = new Date().getTime();
-		worldTime += tdt;
 		
 		while (afterListeners[0] && afterListeners[0].t <= worldTime)
 			afterListeners.splice(0, 1)[0].fn(worldTime);
@@ -67,17 +66,18 @@ var world = new (function() {
 			
 			updateMissiles(dt);
 			
-			triggerInterceptors(worldTime+dt, dt);
+			triggerInterceptors(worldTime, dt);
 			
 			updateInterceptors(dt);												
 			
 			tdt -= dt;
-			dt = Math.min(tdt, 0.05);						
+			dt = Math.min(tdt, 0.05);
+			
+			worldTime += dt;
 		} while(dt > 0 && (performance.now() - updateStart < 5));
 		
 		lag += tdt;
 		worldTime -= tdt;
-			
 		UI.updateWorldTime(worldTime);
 	}
 	

@@ -218,6 +218,7 @@ body>canvas {
     width: 400px;
     max-width: 100%;
     box-sizing: border-box;
+    z-index: 1;
 }
 
 .chat .chat-input {
