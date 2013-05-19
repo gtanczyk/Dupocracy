@@ -61,7 +61,7 @@ var world = new (function() {
 		
 		var updateStart = performance.now();
 		
-		do {
+		function updateLaunchers(dt) {
 			var i = launchers.length;
 			while (i--) {
 				var launcher = launchers[i];
@@ -80,7 +80,9 @@ var world = new (function() {
 					delete launcher.opts.target;
 				}
 			};
-			
+		}
+		
+		function updateMissiles(dt) {
 			var j = missiles.length;
 			while (j--) {
 				var missile = missiles[j];
@@ -110,27 +112,39 @@ var world = new (function() {
 						remove(missile.id);
 					}
 					
-					var i = launchers.length;
-					while (i--) {
-						launcher = launchers[i];
-						if(launcher.opts.mode!=0 || launcher.opts.faction == missile.opts.faction || launcher.opts.launchTS && (worldTime - launcher.opts.launchTS) < 2000)
-							continue;
-						
-						var target = IDmap[launcherTargets[launcher.id]];
-						if(!target && VMath.distance([launcher.x, launcher.y], [missile.x, missile.y]) < 500 ||
-							target && launcher.opts.launchTS && (worldTime - launcher.opts.launchTS) > 2000) {
-							launcher.opts.launchTS = worldTime;
-							launcherTargets[launcher.id] = missile.id;
-							add('interceptor', launcher.x, launcher.y, { targetID: missile.id, faction: launcher.opts.faction });					
-						}
-					};
+					triggerInterceptors(dt, missile);
+										
 				} else {
 					missile.dead = true;
 					remove(missile.id);
 				}
 
 			};
-			
+		};
+		
+		function triggerInterceptors(dt, missile) {
+			var i = launchers.length;
+			while (i--) {
+				var launcher = launchers[i];
+				if(launcher.opts.mode!=0 || launcher.opts.faction == missile.opts.faction || 
+					launcher.opts.launchTS && (worldTime - launcher.opts.launchTS) < 2000)
+					continue;
+				
+				updateLauncher(launcher, dt, missile);
+			};
+		}
+		
+		function updateLauncher(launcher, dt, missile) {
+			var target = IDmap[launcherTargets[launcher.id]];
+			if(!target && VMath.distance([launcher.x, launcher.y], [missile.x, missile.y]) < 500 ||
+				target && launcher.opts.launchTS && (worldTime - launcher.opts.launchTS) > 2000) {
+				launcher.opts.launchTS = worldTime;
+				launcherTargets[launcher.id] = missile.id;
+				add('interceptor', launcher.x, launcher.y, { targetID: missile.id, faction: launcher.opts.faction });					
+			}
+		}
+		
+		function updateInterceptors(dt) {
 			var j = interceptors.length;
 			while (j--) {
 				var interceptor = interceptors[j];
@@ -154,6 +168,15 @@ var world = new (function() {
 					remove(interceptor.id);
 				}
 			};
+		}
+		
+		do {
+			
+			updateLaunchers(dt);
+			
+			updateMissiles(dt);
+			
+			updateInterceptors(dt);
 			
 			tdt -= dt;
 			dt = Math.min(tdt, 0.05);						
