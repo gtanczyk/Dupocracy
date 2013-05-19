@@ -77,7 +77,6 @@ var world = new (function() {
 		} while(dt > 0 && (performance.now() - updateStart < 10));
 		
 		lag += tdt;
-		worldTime -= tdt;
 		UI.updateWorldTime(worldTime);
 	}
 	
