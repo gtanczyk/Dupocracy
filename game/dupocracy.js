@@ -159,14 +159,21 @@ DomReady.ready(function() {
 			
 			connection.on('newObject', function(header, body, data) {
 				body = JSON.parse(body);
-				world.add(body.type, body.x, body.y, body.opts);
+				world.add(body.type, body.x, body.y, body.opts, body.id);
 			});	
 	
 			connection.hon('makeObject', function(header, body, data, clientID) {
 				body = JSON.parse(body);
-				if(world.canAdd(body.type, body.x, body.y, body.opts))
+				if(players[body.opts.faction].clientID == clientID &&
+					world.canAdd(body.type, body.x, body.y, body.opts)) {
+					body.id = world.nextID();
 					connection.broadcast('newObject', JSON.stringify(body));
+				}
 			});		
+			
+			world.onAdd(function(type, x, y, opts) {
+				connection.toHost('makeObject', JSON.stringify({ type: type, x: x, y: y, opts: opts }));
+			});
 			
 			// targets
 

@@ -1,6 +1,10 @@
 var world = new (function() {
-	var IDserial = 0;
+	var IDserial = 0;	
 	var IDmap = {};
+	
+	this.nextID = function() {
+		return IDserial++;
+	};
 	
 	var launchers = [];
 	var launcherTargets = {};
@@ -117,7 +121,7 @@ var world = new (function() {
 							target && launcher.opts.launchTS && (worldTime - launcher.opts.launchTS) > 2000) {
 							launcher.opts.launchTS = worldTime;
 							launcherTargets[launcher.id] = missile.id;
-							add('interceptor', launcher.x, launcher.y, { targetID: missile.id });					
+							add('interceptor', launcher.x, launcher.y, { targetID: missile.id, faction: launcher.opts.faction });					
 						}
 					};
 				} else {
@@ -229,16 +233,30 @@ var world = new (function() {
 		IDmap[id].opts.switchModeTS = worldTime;
 	}
 	
-	var add = this.add = function(type, x, y, opts) {
-		var object = { id: IDserial++, type: type, x: x, y: y, width: 16, height: 16, shape: (type == 'interceptor' ? 'ball' : type == 'launcher' ? 'rect' : 'arc'), ft: 0, opts: opts };
-		IDmap[object.id] = object;
-		(type == 'launcher' ? launchers : 
-		 type == 'radar' ? radars :
-		 type == 'missile' ? missiles :		 
-		 type == 'interceptor' ? interceptors:
-			[]).push(object);
-	};
+	// new object
 	
+	var onAddListeners = [];
+	
+	this.onAdd = function(fn) {
+		onAddListeners.push(fn);
+	}
+	
+	var add = this.add = function(type, x, y, opts, id) {
+		if(!id)
+			onAddListeners.every(function(fn) { 
+				fn(type, x, y, opts);
+			})
+		else {
+			var object = { id: id, type: type, x: x, y: y, width: 16, height: 16, shape: (type == 'interceptor' ? 'ball' : type == 'launcher' ? 'rect' : 'arc'), ft: 0, opts: opts };
+			IDmap[object.id] = object;
+			(type == 'launcher' ? launchers : 
+			 type == 'radar' ? radars :
+			 type == 'missile' ? missiles :		 
+			 type == 'interceptor' ? interceptors:
+				[]).push(object);
+		}
+	};
+
 	// removal
 	
 	var onRemoveListeners = [];
