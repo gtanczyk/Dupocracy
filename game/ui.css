@@ -74,7 +74,7 @@ body>canvas {
 /* cotext menu */
 
 .cmenu {
-	position: absolute;
+	position: fixed;
 	background: rgba(0,0,0,0.9);
 	color: white;
 	padding: 5px 10px;

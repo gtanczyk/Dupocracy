@@ -11,9 +11,10 @@ var world = new (function() {
 	var interceptors = [];
 	var radars = [];
 	var missiles = [];
+	var scouts = [];
 
 	var worldTime = 0;
-	var groups = [ launchers, interceptors, radars, missiles ];
+	var groups = [ launchers, interceptors, radars, missiles, scouts ];
 	
 	// population hotspots aka cities, players should attack/protect them in order to win 
 	var population = [	{ name: 'Moscow', x: 780, y: 130, r: 20, faction: 'Russia' },
@@ -40,6 +41,7 @@ var world = new (function() {
 		interceptors = groups[1];
 		radars = groups[2];
 		missiles = groups[3];
+		scouts = groups[4];
 		
 		population = state.population;
 	}
@@ -68,7 +70,9 @@ var world = new (function() {
 			
 			triggerInterceptors(worldTime, dt);
 			
-			updateInterceptors(dt);												
+			updateInterceptors(dt);		
+			
+			updateScouts(dt);	
 			
 			tdt -= dt;
 			dt = Math.min(tdt, 0.1);
@@ -82,20 +86,25 @@ var world = new (function() {
 	
 	function updateLaunchers(dt) {
 		var i = launchers.length;
-		while (i--) {
+		while (i --> 0) {
 			var launcher = launchers[i];
 			
 			if(launcher.opts.switchModeTS && (worldTime - launcher.opts.switchModeTS) > 10000) {
-				launcher.opts.mode = (launcher.opts.mode+1)%2;
+				launcher.opts.mode = launcher.opts.switchMode;
 				delete launcher.opts.switchModeTS;
+				delete launcher.opts.switchMode;
 			}
 			
 			if(launcher.opts.target) {
-				if(launcher.opts.launchTS && (worldTime - launcher.opts.launchTS) < 5000 || launcher.opts.mode==0)
+				if(launcher.opts.launchTS && (worldTime - launcher.opts.launchTS) < 5000 || launcher.opts.mode == 0)
 					continue;
 				
 				launcher.opts.launchTS = worldTime;
-				add('missile', launcher.x, launcher.y, { tx: launcher.opts.target[0], ty: launcher.opts.target[1], faction: launcher.opts.faction });
+				if(launcher.opts.mode == 0)
+					add('missile', launcher.x, launcher.y, { tx: launcher.opts.target[0], ty: launcher.opts.target[1], faction: launcher.opts.faction });				
+				else if(launcher.opts.mode == 2)
+					add('scout', launcher.x, launcher.y, { tx: launcher.opts.target[0], ty: launcher.opts.target[1], faction: launcher.opts.faction });	
+				
 				delete launcher.opts.target;
 			}
 		};
@@ -103,7 +112,7 @@ var world = new (function() {
 	
 	function updateMissiles(dt) {
 		var j = missiles.length;
-		while (j--) {
+		while (j --> 0) {
 			var missile = missiles[j];
 			missile.ft += dt / 1000;
 			if(missile.ft < 100 && !missile.dead) {
@@ -113,19 +122,19 @@ var world = new (function() {
 				missile.x = missile.x + V[0]*dt/40; 
 				missile.y = missile.y + V[1]*dt/40;
 				
-				if(VMath.length([ missile.opts.tx - missile.x, missile.opts.ty - missile.y ]) < 10 && !missile.dead) {
+				if(VMath.length([ missile.opts.tx - missile.x, missile.opts.ty - missile.y ]) < 8 && !missile.dead) {
 					missile.V = [0, 0]
 					missile.dead = true;
 					population.some(function(hotspot) {
-						if(VMath.distance([missile.x, missile.y], [hotspot.x, hotspot.y]) < hotspot.r)
+						if(VMath.distance([missile.x, missile.y], [hotspot.x, hotspot.y]) < hotspot.r + 8)
 							hotspot.r *= 0.8;
 					});
 					launchers.some(function(launcher) {
-						if(VMath.distance([missile.x, missile.y], [launcher.x, launcher.y]) < 8)
+						if(VMath.distance([missile.x, missile.y], [launcher.x, launcher.y]) < 16)
 							remove(launcher.id);
 					});
 					radars.some(function(radar) {
-						if(VMath.distance([missile.x, missile.y], [radar.x, radar.y]) < 8)
+						if(VMath.distance([missile.x, missile.y], [radar.x, radar.y]) < 16)
 							remove(launcher.id);
 					});
 					remove(missile.id);
@@ -141,7 +150,7 @@ var world = new (function() {
 	
 	function triggerInterceptors(worldTime, dt) {
 		var i = launchers.length;
-		while (i--) {
+		while (i --> 0) {
 			var launcher = launchers[i];
 			if(launcher.opts.nextTickTS  > worldTime || launcher.opts.mode!=0 || 
 				launcher.opts.nextLaunchTS > worldTime)
@@ -150,7 +159,7 @@ var world = new (function() {
 			launcher.opts.nextTickTS = worldTime + 2000;
 			
 			var j = missiles.length;
-			while (j--) {
+			while (j --> 0) {
 				var missile = missiles[j];	
 				if(launcher.opts.faction != missile.opts.faction)
 					updateLauncher(launcher, worldTime, dt, missile);
@@ -170,7 +179,7 @@ var world = new (function() {
 	
 	function updateInterceptors(dt) {
 		var j = interceptors.length;
-		while (j--) {
+		while (j --> 0) {
 			var interceptor = interceptors[j];
 			interceptor.ft += dt / 1000;
 			var target = IDmap[interceptor.opts.targetID];
@@ -192,6 +201,24 @@ var world = new (function() {
 				remove(interceptor.id);
 			}
 		};
+	}
+	
+	function updateScouts(dt) {
+		var j = scouts.length;
+		while(j --> 0)  {
+			var scout = scouts[j];
+			scout.ft += dt / 1000;
+			if(scout.ft < 100 && !scout.dead) {
+				if(!scout.V)
+					scout.V = VMath.normalize([ scout.opts.tx - scout.x, scout.opts.ty - scout.y ]);
+				var V = scout.V;
+				scout.x = scout.x + V[0]*dt/40; 
+				scout.y = scout.y + V[1]*dt/40;
+			} else {
+				scout.dead = true;
+				remove(scout.id);
+			}
+		}
 	}
 
 	var updateInterval;
@@ -258,8 +285,9 @@ var world = new (function() {
 		IDmap[id].opts.target = [x, y];
 	}
 	
-	this.switchMode = function(id) {
+	this.switchMode = function(id, mode) {
 		IDmap[id].opts.switchModeTS = worldTime;
+		IDmap[id].opts.switchMode = mode;
 	}
 	
 	// new object
@@ -276,12 +304,13 @@ var world = new (function() {
 				fn(type, x, y, opts);
 			})
 		else {
-			var object = { id: id, type: type, x: x, y: y, width: 16, height: 16, shape: (type == 'interceptor' ? 'ball' : type == 'launcher' ? 'rect' : 'arc'), ft: 0, opts: opts };
+			var object = { id: id, type: type, x: x, y: y, width: 16, height: 16, shape: (type == 'interceptor' ? 'ball' : type == 'launcher' ? 'rect' : type == 'scout' ? 'triangle' : 'arc'), ft: 0, opts: opts };
 			IDmap[object.id] = object;
 			(type == 'launcher' ? launchers : 
 			 type == 'radar' ? radars :
 			 type == 'missile' ? missiles :		 
-			 type == 'interceptor' ? interceptors:
+			 type == 'interceptor' ? interceptors :
+			 type == 'scout' ? scouts :
 				[]).push(object);
 		}
 	};
@@ -347,6 +376,8 @@ var world = new (function() {
 					view.fillArc(object.x, object.y, object.width / 2, color);
 				else if(object.shape == 'ball')
 					view.fillArc(object.x, object.y, object.width / 8, color);
+				else if(object.shape == 'triangle')
+					view.fillArc(object.x, object.y, object.width / 8, 'white');
 			});
 		});
 		
