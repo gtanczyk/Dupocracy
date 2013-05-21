@@ -142,7 +142,7 @@ var world = new (function() {
 					});
 					radars.some(function(radar) {
 						if(VMath.distance([missile.x, missile.y], [radar.x, radar.y]) < 16)
-							remove(launcher.id);
+							remove(radar.id);
 					});
 					remove(missile.id);
 				}					
