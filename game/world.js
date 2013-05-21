@@ -156,6 +156,26 @@ var world = new (function() {
 	};
 	
 	function triggerInterceptors(worldTime, dt) {
+		var sight = {};
+		
+		groups.some(function(group) {
+			group.some(function(object) {
+				if(!object.dead) {
+					if(!sight[object.opts.faction])
+						sight[object.opts.faction] = { V: {}, H: {} };
+					
+					var left = Math.floor((object.x-object.visibilityRadius) / 16);
+					var top = Math.floor((object.y-object.visibilityRadius) / 16);
+					var right = Math.floor((object.x+object.visibilityRadius) / 16);
+					var bottom = Math.floor((object.y+object.visibilityRadius) / 16);
+					for(var i = left; i <= right; i++)
+						sight[object.opts.faction].H[i] = true;
+					for(var i = top ; i <= bottom; i++)
+						sight[object.opts.faction].V[i] = true;
+				}
+			});
+		});
+		
 		var i = launchers.length;
 		while (i --> 0) {
 			var launcher = launchers[i];
@@ -168,7 +188,7 @@ var world = new (function() {
 			var j = missiles.length;
 			while (j --> 0) {
 				var missile = missiles[j];	
-				if(launcher.opts.faction != missile.opts.faction)
+				if(launcher.opts.faction != missile.opts.faction && visibilityCheck(missile, sight[launcher.opts.faction], launcher.opts.faction))
 					updateLauncher(launcher, worldTime, dt, missile);
 			}
 		};
@@ -176,8 +196,7 @@ var world = new (function() {
 	
 	function updateLauncher(launcher, worldTime, dt, missile) {
 		var target = IDmap[launcherTargets[launcher.id]];
-		if(!target && VMath.distance([launcher.x, launcher.y], [missile.x, missile.y]) < 500 ||
-			target && launcher.opts.nextLaunchTS < worldTime) {
+		if(!target && VMath.distance([launcher.x, launcher.y], [missile.x, missile.y]) < 500 || target && launcher.opts.nextLaunchTS < worldTime) {
 			launcher.opts.nextLaunchTS = worldTime + 2000;
 			launcherTargets[launcher.id] = missile.id;
 			add('interceptor', launcher.x, launcher.y, { targetID: missile.id, faction: launcher.opts.faction });					
@@ -391,10 +410,8 @@ var world = new (function() {
 		visibleFaction = faction;
 	}
 	
-	this.visibilityCheck = function(object) {
-		return !visibleFaction || (object.opts.faction == visibleFaction) ||
-				visibility[visibleFaction].V[Math.floor(object.y / 16)] && 
-				visibility[visibleFaction].H[Math.floor(object.x / 16)];
+	var visibilityCheck = this.visibilityCheck = function(object, sight, faction) {
+		return !faction || (object.opts.faction == faction) || sight.V[Math.floor(object.y / 16)] && sight.H[Math.floor(object.x / 16)];
 	}
 	
 	this.render = function() {
@@ -422,7 +439,7 @@ var world = new (function() {
 		
 		groups.some(function(group) {
 			group.some(function(object) {
-				if(object.dead || !world.visibilityCheck(object))
+				if(object.dead || !world.visibilityCheck(object, visibility[visibleFaction], visibleFaction))
 					return;
 				
 				if(visibleFaction == object.opts.faction)
