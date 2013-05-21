@@ -10,7 +10,13 @@ DomReady.ready(function() {
 	view = new (function() {
 		var viewWidth, viewHeight;
 		
+		var canvasContainer = document.createElement('div');
+		canvasContainer.className = 'canvas-container';
+		document.body.appendChild(canvasContainer);
+		
 		var canvas = document.createElement('canvas');	
+		var canvasFoW = document.createElement('canvas');
+		canvasFoW.className = 'fog-of-war';
 	
 		// events
 	
@@ -36,12 +42,14 @@ DomReady.ready(function() {
 		// asset loading
 		// start doing stuff when background is loaded
 		terrain.dimensions.then(function(width, height) {
-			canvas.width = viewWidth = width;
-			canvas.height = viewHeight = height;
+			canvasContainer.style.width = (canvasFoW.width = canvas.width = viewWidth = width)+'px';
+			canvasContainer.style.height= (canvasFoW.height = canvas.height = viewHeight = height)+'px';
 			
-			document.body.appendChild(canvas);
+			canvasContainer.appendChild(canvas);
+			canvasContainer.appendChild(canvasFoW);
 			
 			ctx = canvas.getContext('2d');
+			ctxFoW = canvasFoW.getContext('2d');
 			
 			requestAnimationFrame(animationFrame);
 			
@@ -54,6 +62,9 @@ DomReady.ready(function() {
 		var clear = this.clear = function() {
 			ctx.fillStyle = 'black';
 			ctx.fillRect(0, 0, viewWidth, viewHeight);
+			
+			ctxFoW.fillStyle = 'black';
+			ctxFoW.fillRect(0, 0, viewWidth, viewHeight);
 		}
 		
 		this.fillRect = function(x, y, width, height, color, angle) {
@@ -90,6 +101,16 @@ DomReady.ready(function() {
 			var targetHeight = viewWidth * (image.height / image.width);
 			ctx.drawImage(image, 0, 0, image.width, image.height, 0, (viewHeight - targetHeight) / 2, viewWidth, targetHeight);
 		}	
+		
+		this.lightUp = function(x, y, radius) {
+			var oldGCO = ctxFoW.globalCompositeOperation;
+			ctxFoW.globalCompositeOperation = 'destination-out';
+			ctxFoW.beginPath();
+			ctxFoW.arc(x, y, radius, 0, Math.PI*2, true); 
+			ctxFoW.closePath();
+			ctxFoW.fill();			
+			ctxFoW.globalCompositeOperation = oldGCO;
+		}
 		
 		// animation
 		

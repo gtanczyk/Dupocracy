@@ -12,7 +12,7 @@ var world = new (function() {
 	var radars = [];
 	var missiles = [];
 	var scouts = [];
-
+	
 	var worldTime = 0;
 	var groups = [ launchers, interceptors, radars, missiles, scouts ];
 	
@@ -24,6 +24,13 @@ var world = new (function() {
 						{ name: 'Bejing', x: 1040, y: 250, r: 20, faction: 'Asia' },
 						{ name: 'Tokyo', x: 1140, y: 220, r: 20, faction: 'Asia' },
 						{ name: 'Rio de janeiro', x: 490, y: 400, r: 20, faction: 'Latin America' }];		
+
+	var visibility = population.reduce(function(r, city) {
+		if(!r[city.faction])
+			r[city.faction] = { V: {}, H: {} }; 
+		return r; 
+	}, {});
+
 	
 	// store/restore
 	
@@ -100,9 +107,9 @@ var world = new (function() {
 					continue;
 				
 				launcher.opts.launchTS = worldTime;
-				if(launcher.opts.mode == 0)
+				if(launcher.opts.mode == 1 &&  launcher.opts.targetMode == 1)
 					add('missile', launcher.x, launcher.y, { tx: launcher.opts.target[0], ty: launcher.opts.target[1], faction: launcher.opts.faction });				
-				else if(launcher.opts.mode == 2)
+				else if(launcher.opts.mode == 2 &&  launcher.opts.targetMode == 2)
 					add('scout', launcher.x, launcher.y, { tx: launcher.opts.target[0], ty: launcher.opts.target[1], faction: launcher.opts.faction });	
 				
 				delete launcher.opts.target;
@@ -208,9 +215,14 @@ var world = new (function() {
 		while(j --> 0)  {
 			var scout = scouts[j];
 			scout.ft += dt / 1000;
-			if(scout.ft < 100 && !scout.dead) {
+			if(scout.ft < 100 && !scout.dead) {				
 				if(!scout.V)
 					scout.V = VMath.normalize([ scout.opts.tx - scout.x, scout.opts.ty - scout.y ]);
+				else {
+					var V = VMath.normalize([ scout.opts.tx - scout.x + Math.cos(scout.ft) * 20, 
+											  scout.opts.ty - scout.y + Math.sin(scout.ft) * 20]);
+					scout.V = VMath.add(scout.V, VMath.scale(VMath.sub(V, scout.V), dt / 100));
+				}
 				var V = scout.V;
 				scout.x = scout.x + V[0]*dt/40; 
 				scout.y = scout.y + V[1]*dt/40;
@@ -281,8 +293,9 @@ var world = new (function() {
 	
 	// control
 	
-	this.setTarget = function(id, x, y) {
+	this.setTarget = function(id, x, y, mode) {
 		IDmap[id].opts.target = [x, y];
+		IDmap[id].opts.targetMode = mode; 
 	}
 	
 	this.switchMode = function(id, mode) {
@@ -304,7 +317,21 @@ var world = new (function() {
 				fn(type, x, y, opts);
 			})
 		else {
-			var object = { id: id, type: type, x: x, y: y, width: 16, height: 16, shape: (type == 'interceptor' ? 'ball' : type == 'launcher' ? 'rect' : type == 'scout' ? 'triangle' : 'arc'), ft: 0, opts: opts };
+			var object = { 
+				id: id, type: type, 
+				x: x, y: y, 
+				width: 16, height: 16, 
+				shape: {
+					interceptor: 'ball', launcher: 'rect', 
+					scout : 'triangle', radar: 'arc', missile: 'arc'
+				}[type],
+				visibilityRadius: {
+					interceptor: 15, launcher: 30, 
+					scout : 50, radar: 150, missile: 20
+				}[type],
+				ft: 0, opts: opts 
+			};
+			
 			IDmap[object.id] = object;
 			(type == 'launcher' ? launchers : 
 			 type == 'radar' ? radars :
@@ -359,17 +386,49 @@ var world = new (function() {
 
 	// rendering
 	
+	var visibleFaction;
+	this.setVisibleFaction = function(faction) {
+		visibleFaction = faction;
+	}
+	
 	this.visibilityCheck = function(object) {
-		return true;
+		return !visibleFaction || (object.opts.faction == visibleFaction) ||
+				visibility[visibleFaction].V[Math.floor(object.y / 16)] && 
+				visibility[visibleFaction].H[Math.floor(object.x / 16)];
 	}
 	
 	this.render = function() {
+		if(visibleFaction && (new Date().getTime() - (visibility[visibleFaction].lastUpdate||0) > 1000)) {
+			visibility[visibleFaction].lastUpdate = new Date().getTime() ;
+
+			visibility[visibleFaction].H = [];
+			visibility[visibleFaction].V = [];
+			
+			groups.some(function(group) {
+				group.some(function(object) {
+					if(!object.dead && visibleFaction == object.opts.faction) {
+						var left = Math.floor((object.x-object.visibilityRadius) / 16);
+						var top = Math.floor((object.y-object.visibilityRadius) / 16);
+						var right = Math.floor((object.x+object.visibilityRadius) / 16);
+						var bottom = Math.floor((object.y+object.visibilityRadius) / 16);
+						for(var i = left; i <= right; i++)
+							visibility[object.opts.faction].H[i] = true;
+						for(var i = top ; i <= bottom; i++)
+							visibility[object.opts.faction].V[i] = true;
+					}
+				});
+			});
+		}
+		
 		groups.some(function(group) {
 			group.some(function(object) {
-				if(object.dead || !world.visibilityCheck)
+				if(object.dead || !world.visibilityCheck(object))
 					return;
 				
-				var color = object.selected ? 'yellow' : (object.opts.mode==0?'blue':'red');
+				if(visibleFaction == object.opts.faction)
+					view.lightUp(object.x, object.y, object.visibilityRadius);				
+				
+				var color = object.selected ? 'yellow' : (object.opts.mode==0?'blue':object.opts.mode==2?'white':'red');
 				if(object.shape == 'rect')
 					view.fillRect(object.x - object.width/2, object.y - object.height/2, object.width, object.height, color);
 				else if(object.shape == 'arc')

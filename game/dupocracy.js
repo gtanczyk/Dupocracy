@@ -123,9 +123,11 @@ DomReady.ready(function() {
 		init.then(function(connection) {	
 			GameStates.init.then(function() {
 				named.then(function() {
+					world.setVisibleFaction(null);
 					factionWidget.show();
 					factionWidget.joinSlot.once(function(slot) {
 						joinGame(slot).once(function(slot) {
+							world.setVisibleFaction(slot);
 							factionWidget.clearAll();
 							if(slot)
 								factionWidget.ready().then(function() {
@@ -180,7 +182,7 @@ DomReady.ready(function() {
 			
 			connection.on('setTarget', function(header, body, data, clientID) {
 				body = JSON.parse(body);
-				world.setTarget(body.id, body.x, body.y);
+				world.setTarget(body.id, body.x, body.y, body.mode);
 			});
 			
 			// mode switch
@@ -190,7 +192,8 @@ DomReady.ready(function() {
 			});
 			
 			connection.on('switchMode', function(header, body, data, clientID) {
-				world.switchMode(body);
+				body = JSON.parse(body);
+				world.switchMode(body.objectID, body.mode);
 			});
 
 					
@@ -218,6 +221,25 @@ DomReady.ready(function() {
 				});
 				control.then(function(mySlot) {	
 					Selection.point.then(function(viewX, viewY, worldX, worldY, selection) {
+						if(selection.length > 0)
+							UI.contextMenu(viewX, viewY, [['attack', 'Attack mode'], ['defend', 'Defend mode'], ['scout', 'Scout mode']]).then(function(option) {
+								if(option == 'attack') {
+									selection.some(function(object) {
+										if(object.type == 'launcher') 											
+											connection.toHost("switchMode", JSON.stringify({ objectID: object.id, mode: 1}));											
+									});							
+								} else if(option == 'scout') {
+									selection.some(function(object) {
+										if(object.type == 'launcher')
+											connection.toHost("switchMode", JSON.stringify({ objectID: object.id, mode: 2}));											
+									});							
+								} else if(option == 'defend') {
+									selection.some(function(object) {
+										if(object.type == 'launcher')
+											connection.toHost("switchMode", JSON.stringify({ objectID: object.id, mode: 0 })); 
+									});																
+								}
+							});	
 						if(selection.length == 0)
 							UI.contextMenu(viewX, viewY, [['launcher', 'Launcher'], ['radar', 'Radar']].map(function(el) { return [el[0], el[1] + ' ('+world.countGroup(el[0], mySlot)+'/5)'] })).then(function(option) {
 								connection.toHost("makeObject", JSON.stringify({ type: option, x: worldX, y: worldY, opts: { faction: mySlot, mode: Math.random() > 0.5 ? 1 : 0 } }));
@@ -247,19 +269,27 @@ DomReady.ready(function() {
 				control.then(function(mySlot) {	
 					Selection.point.then(function(viewX, viewY, worldX, worldY, selection) {
 						if(selection.length > 0)
-							UI.contextMenu(viewX, viewY, [['attack', 'Attack'], ['defend', 'Defend']]).then(function(option) {
+							UI.contextMenu(viewX, viewY, [['attack', 'Attack'], ['defend', 'Defend'], ['scout', 'Scout']]).then(function(option) {
 								if(option == 'attack') {
 									selection.some(function(object) {
 										if(object.type == 'launcher') { 											
-											if(object.opts.mode==0)
-												connection.toHost("switchMode", object.id);											
-											connection.toHost("setTarget", JSON.stringify({ id: object.id, x: worldX, y: worldY }));										
+											if(object.opts.mode != 1)
+												connection.toHost("switchMode", JSON.stringify({ objectID: object.id, mode: 1}));											
+											connection.toHost("setTarget", JSON.stringify({ id: object.id, x: worldX, y: worldY, mode: 1 }));										
+										}
+									});							
+								} else if(option == 'scout') {
+									selection.some(function(object) {
+										if(object.type == 'launcher') { 											
+											if(object.opts.mode != 2)
+												connection.toHost("switchMode", JSON.stringify({ objectID: object.id, mode: 2}));											
+											connection.toHost("setTarget", JSON.stringify({ id: object.id, x: worldX, y: worldY, mode: 2 }));										
 										}
 									});							
 								} else if(option == 'defend') {
 									selection.some(function(object) {
-										if(object.type == 'launcher' && object.opts.mode==1)
-											connection.toHost("switchMode", object.id); 
+										if(object.type == 'launcher' && object.opts.mode != 0)
+											connection.toHost("switchMode", JSON.stringify({ objectID: object.id, mode: 0 })); 
 									});																
 								}
 							});				
