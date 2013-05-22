@@ -212,7 +212,7 @@ DomReady.ready(function() {
 				UI.hideStatus();
 	
 				UI.showStatus('Prepare stage, place launchers and radars. 3 minutes remaining!');
-				world.after(2000, function() {
+				world.after(5000, function() {
 					UI.hideStatus();
 				});
 				
