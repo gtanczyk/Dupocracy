@@ -17,6 +17,8 @@ DomReady.ready(function() {
 		var canvas = document.createElement('canvas');	
 		var canvasFoW = document.createElement('canvas');
 		canvasFoW.className = 'fog-of-war';
+		var canvasTerrain = document.createElement('canvas');
+		canvasTerrain.className = 'terrain';
 	
 		// events
 	
@@ -42,14 +44,18 @@ DomReady.ready(function() {
 		// asset loading
 		// start doing stuff when background is loaded
 		terrain.dimensions.then(function(width, height) {
-			canvasContainer.style.width = (canvasFoW.width = canvas.width = viewWidth = width)+'px';
-			canvasContainer.style.height= (canvasFoW.height = canvas.height = viewHeight = height)+'px';
+			canvasContainer.style.width = (canvasFoW.width = canvas.width = canvasTerrain.width = viewWidth = width)+'px';
+			canvasContainer.style.height= (canvasFoW.height = canvas.height = canvasTerrain.height = viewHeight = height)+'px';
 			
+			canvasContainer.appendChild(canvasTerrain);
 			canvasContainer.appendChild(canvas);
 			canvasContainer.appendChild(canvasFoW);
 			
+			ctxTerrain = canvasTerrain.getContext('2d');
 			ctx = canvas.getContext('2d');
 			ctxFoW = canvasFoW.getContext('2d');
+			
+			terrain.render(0, 0, viewWidth, viewHeight);
 			
 			requestAnimationFrame(animationFrame);
 			
@@ -60,8 +66,8 @@ DomReady.ready(function() {
 		// canvas util
 	
 		var clear = this.clear = function() {
-			ctx.fillStyle = 'black';
-			ctx.fillRect(0, 0, viewWidth, viewHeight);
+//			ctx.fillStyle = 'black';
+			ctx.clearRect(0, 0, viewWidth, viewHeight);
 			
 			ctxFoW.fillStyle = 'black';
 			ctxFoW.fillRect(0, 0, viewWidth, viewHeight);
@@ -99,7 +105,7 @@ DomReady.ready(function() {
 		
 		this.drawImage = function(image) {
 			var targetHeight = viewWidth * (image.height / image.width);
-			ctx.drawImage(image, 0, 0, image.width, image.height, 0, (viewHeight - targetHeight) / 2, viewWidth, targetHeight);
+			ctxTerrain.drawImage(image, 0, 0, image.width, image.height, 0, (viewHeight - targetHeight) / 2, viewWidth, targetHeight);
 		}	
 		
 		this.lightUp = function(x, y, radius) {
@@ -125,8 +131,7 @@ DomReady.ready(function() {
 			});
 			
 			clear();
-	
-			terrain.render(0, 0, viewWidth, viewHeight);		
+						
 			world.render(0, 0, viewWidth, viewHeight);
 	
 			requestAnimationFrame(animationFrame);

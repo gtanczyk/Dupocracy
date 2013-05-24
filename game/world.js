@@ -155,26 +155,31 @@ var world = new (function() {
 		};
 	};
 	
+	var sight;
+	
 	function triggerInterceptors(worldTime, dt) {
-		var sight = {};
-		
-		groups.some(function(group) {
-			group.some(function(object) {
-				if(!object.dead) {
-					if(!sight[object.opts.faction])
-						sight[object.opts.faction] = { V: {}, H: {} };
-					
-					var left = Math.floor((object.x-object.visibilityRadius) / 16);
-					var top = Math.floor((object.y-object.visibilityRadius) / 16);
-					var right = Math.floor((object.x+object.visibilityRadius) / 16);
-					var bottom = Math.floor((object.y+object.visibilityRadius) / 16);
-					for(var i = left; i <= right; i++)
-						sight[object.opts.faction].H[i] = true;
-					for(var i = top ; i <= bottom; i++)
-						sight[object.opts.faction].V[i] = true;
-				}
+		if(!sight || worldTime - sight.ts > 1000) {
+			if(sight)
+				console.log(worldTime - sight.ts);
+			sight = { ts: worldTime };
+			groups.some(function(group) {
+				group.some(function(object) {
+					if(!object.dead) {
+						if(!sight[object.opts.faction])
+							sight[object.opts.faction] = { V: {}, H: {} };
+						
+						var left = Math.floor((object.x-object.visibilityRadius) / 16);
+						var top = Math.floor((object.y-object.visibilityRadius) / 16);
+						var right = Math.floor((object.x+object.visibilityRadius) / 16);
+						var bottom = Math.floor((object.y+object.visibilityRadius) / 16);
+						for(var i = left; i <= right; i++)
+							sight[object.opts.faction].H[i] = true;
+						for(var i = top ; i <= bottom; i++)
+							sight[object.opts.faction].V[i] = true;
+					}
+				});
 			});
-		});
+		}
 		
 		var i = launchers.length;
 		while (i --> 0) {
