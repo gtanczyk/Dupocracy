@@ -159,8 +159,6 @@ var world = new (function() {
 	
 	function triggerInterceptors(worldTime, dt) {
 		if(!sight || worldTime - sight.ts > 1000) {
-			if(sight)
-				console.log(worldTime - sight.ts);
 			sight = { ts: worldTime };
 			groups.some(function(group) {
 				group.some(function(object) {
