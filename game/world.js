@@ -23,7 +23,11 @@ var world = new (function() {
 						{ name: 'Cape Town', x: 710, y: 470, r: 20, faction: 'Africa' },
 						{ name: 'Bejing', x: 1040, y: 250, r: 20, faction: 'Asia' },
 						{ name: 'Tokyo', x: 1140, y: 220, r: 20, faction: 'Asia' },
-						{ name: 'Rio de janeiro', x: 490, y: 400, r: 20, faction: 'Latin America' }];		
+						{ name: 'Rio de janeiro', x: 490, y: 400, r: 20, faction: 'Latin America' }].filter(function(city) {
+							city.visibilityRadius = 20;
+							city.opts = { faction: city.faction };
+							return true;
+						});		
 
 	var visibility = population.reduce(function(r, city) {
 		if(!r[city.faction])
@@ -169,26 +173,30 @@ var world = new (function() {
 	
 	var sight;
 	
+	function fillSight(object) {
+		if(!object.dead) {
+			if(!sight[object.opts.faction])
+				sight[object.opts.faction] = { V: {}, H: {} };
+			
+			var left = Math.floor((object.x-object.visibilityRadius) / 16);
+			var top = Math.floor((object.y-object.visibilityRadius) / 16);
+			var right = Math.floor((object.x+object.visibilityRadius) / 16);
+			var bottom = Math.floor((object.y+object.visibilityRadius) / 16);
+			for(var i = left; i <= right; i++)
+				sight[object.opts.faction].H[i] = true;
+			for(var i = top ; i <= bottom; i++)
+				sight[object.opts.faction].V[i] = true;
+		}
+	}
+	
 	function triggerInterceptors(worldTime, dt) {
 		if(!sight || worldTime - sight.ts > 1000) {
 			sight = { ts: worldTime };
 			groups.some(function(group) {
-				group.some(function(object) {
-					if(!object.dead) {
-						if(!sight[object.opts.faction])
-							sight[object.opts.faction] = { V: {}, H: {} };
-						
-						var left = Math.floor((object.x-object.visibilityRadius) / 16);
-						var top = Math.floor((object.y-object.visibilityRadius) / 16);
-						var right = Math.floor((object.x+object.visibilityRadius) / 16);
-						var bottom = Math.floor((object.y+object.visibilityRadius) / 16);
-						for(var i = left; i <= right; i++)
-							sight[object.opts.faction].H[i] = true;
-						for(var i = top ; i <= bottom; i++)
-							sight[object.opts.faction].V[i] = true;
-					}
-				});
+				group.some(fillSight);
 			});
+			
+			population.some(fillSight);
 		}
 		
 		var i = launchers.length;
@@ -436,19 +444,27 @@ var world = new (function() {
 			visibility[visibleFaction].H = [];
 			visibility[visibleFaction].V = [];
 			
+			function fill(object) {
+				var left = Math.floor((object.x-object.visibilityRadius) / 16);
+				var top = Math.floor((object.y-object.visibilityRadius) / 16);
+				var right = Math.floor((object.x+object.visibilityRadius) / 16);
+				var bottom = Math.floor((object.y+object.visibilityRadius) / 16);
+				for(var i = left; i <= right; i++)
+					visibility[object.opts.faction].H[i] = true;
+				for(var i = top ; i <= bottom; i++)
+					visibility[object.opts.faction].V[i] = true;
+			}
+			
 			groups.some(function(group) {
 				group.some(function(object) {
-					if(!object.dead && visibleFaction == object.opts.faction) {
-						var left = Math.floor((object.x-object.visibilityRadius) / 16);
-						var top = Math.floor((object.y-object.visibilityRadius) / 16);
-						var right = Math.floor((object.x+object.visibilityRadius) / 16);
-						var bottom = Math.floor((object.y+object.visibilityRadius) / 16);
-						for(var i = left; i <= right; i++)
-							visibility[object.opts.faction].H[i] = true;
-						for(var i = top ; i <= bottom; i++)
-							visibility[object.opts.faction].V[i] = true;
-					}
+					if(!object.dead && visibleFaction == object.opts.faction)
+						fill(object);
 				});
+			});
+			
+			population.some(function(city) {
+				if(city.faction == visibleFaction)
+					fill(city);
 			});
 		}
 		
@@ -472,9 +488,12 @@ var world = new (function() {
 			});
 		});
 		
-		population.some(function(hotspot) {
+		population.some(function(hotspot) {			
+			if(visibleFaction == hotspot.faction)
+				view.lightUp(hotspot.x, hotspot.y, hotspot.visibilityRadius);							
+			
 			var w =  Math.sqrt(hotspot.r) + 5;
-			view.fillRect(hotspot.x-w/2, hotspot.y-w/2, w, w, 'green', Math.PI/4);
+			view.fillRect(hotspot.x-w/2, hotspot.y-w/2, w, w, 'green');
 		});
 	};
 	

@@ -431,14 +431,18 @@ DomReady.ready(function() {
 					connection.toHost('maybeEnd');
 			});
 			
+			var doEnd = new Deferred();
+			doEnd.once(function() {
+				Object.keys(players).some(function(slot) { 
+					connection.broadcast('winner', JSON.stringify({ faction: slot, name: players[slot].name }));
+				});
+				connection.broadcast('currentGameState', 'end');
+			})
+			
 			connection.hon('maybeEnd', function() {
 				GameStates.warfare.then(function() {
-					if(Object.keys(players).length <= 1) {
-						Object.keys(players).some(function(slot) { 
-							connection.broadcast('winner', JSON.stringify({ faction: slot, name: players[slot].name }));
-						});
-						connection.broadcast('currentGameState', 'end');
-					}
+					if(Object.keys(players).length <= 1)
+						doEnd.resolve();
 				});
 			});
 			
