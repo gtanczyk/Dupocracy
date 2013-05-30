@@ -226,7 +226,7 @@ DomReady.ready(function() {
 				control.then(function(mySlot) {						
 					Selection.point.only(function(viewX, viewY, worldX, worldY, selection) {
 						if(selection.length > 0)
-							UI.contextMenu(viewX, viewY, [['attack', 'Attack mode'], ['defend', 'Defend mode'], ['scout', 'Scout mode']]).then(function(option) {
+							UI.contextMenu(viewX, viewY, [['attack', 'Attack mode'], ['defend', 'Defend mode'], ['scout', 'Scout mode']]).only(function(option) {
 								if(option == 'attack') {
 									selection.some(function(object) {
 										if(object.type == 'launcher') 											
@@ -245,7 +245,7 @@ DomReady.ready(function() {
 								}
 							});	
 						if(selection.length == 0)
-							UI.contextMenu(viewX, viewY, [['launcher', 'Launcher'], ['radar', 'Radar']].map(function(el) { return [el[0], el[1] + ' ('+world.countGroup(el[0], mySlot)+'/5)'] })).then(function(option) {
+							UI.contextMenu(viewX, viewY, [['launcher', 'Launcher'], ['radar', 'Radar']].map(function(el) { return [el[0], el[1] + ' ('+world.countGroup(el[0], mySlot)+'/5)'] })).only(function(option) {
 								connection.toHost("makeObject", JSON.stringify({ type: option, x: worldX, y: worldY, opts: { faction: mySlot, mode: Math.random() > 0.5 ? 1 : 0 } }));
 							});
 					}, GameStates.prepare);
