@@ -92,7 +92,7 @@ body canvas.fog-of-war {
 /* cotext menu */
 
 .cmenu {
-	position: fixed;
+	position: absolute;
 	background: rgba(0,0,0,0.9);
 	color: white;
 	padding: 5px 10px;

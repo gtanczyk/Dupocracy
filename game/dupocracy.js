@@ -3,12 +3,12 @@ DomReady.ready(function() {
 	dupocracy = new (function() {
 		var connect = new Deferred(true);
 		var init = new Deferred();
-		var control = new Deferred();
+		var control;
 		var named = new Deferred();
 	
 		var factionWidget;
 	
-		init.then(function(connection) {		
+		init.then(function(connection) {						
 			factionWidget = new UI.FactionWidget(factions);	
 	
 			// ask for game state when you are in client mode
@@ -67,6 +67,7 @@ DomReady.ready(function() {
 			var result = new Deferred();
 			
 			connect.once(function(connection) {
+				console.log('Claim slot', slot);
 				connection.toHost('claimSlot', slot);
 				connection.on('yourSlot', function(header, body, data) {
 					result.resolve(body);
@@ -88,45 +89,46 @@ DomReady.ready(function() {
 		var currentGameState;
 	
 		['connect', 'connected', 'init', 'prepare', 'warfare', 'end', 'restart'].some(function(state) {
-			(GameStates[state] = new Deferred()).then(function() {
+			var changeState = function() {
 				if(currentGameState && currentGameState != state)
 					GameStates[currentGameState].clear();
 				currentGameState = state;
-			});
+			};
+			(GameStates[state] = new Deferred()).then(changeState);
+			GameStates[state].only = function(fn, check) {
+				this.listeners.length = 0;
+				this.then(fn, check);
+				this.then(changeState);
+			}
 		});	
 		
 		// connection state
 		
 		GameStates.connect.resolve();
 	
-		GameStates.connect.then(function() {
+		GameStates.connect.only(function() {
 			UI.showStatus('Connecting to server...');
 		});
 		
 		// connected
 		init.then(function(connection) {
-			GameStates.connected.then(function() {
+			GameStates.connected.only(function() {
 				UI.hideStatus();			
 				connection.toHost('getCurrentGameState');
 			});
 		});
 		
-		// init state, name dialog etc.
-		init.then(function(connection) {
-			GameStates.init.then(function() {
-				UI.hideStatus(); 				
-			});
-		});
-	
 		// client
 	
 		init.then(function(connection) {	
-			GameStates.init.then(function() {
+			GameStates.init.only(function() {
+				UI.hideStatus(); 				
 				named.then(function() {
 					world.setVisibleFaction(null);
 					factionWidget.show();
 					factionWidget.joinSlot.once(function(slot) {
 						joinGame(slot).once(function(slot) {
+							control = new Deferred();
 							world.setVisibleFaction(slot);
 							factionWidget.clearAll();
 							if(slot)
@@ -208,7 +210,7 @@ DomReady.ready(function() {
 			});					
 		
 			// prepare state
-			GameStates.prepare.then(function() {
+			GameStates.prepare.only(function() {
 				UI.hideStatus();
 	
 				UI.showStatus('Prepare stage, place launchers and radars. 3 minutes remaining!');
@@ -219,8 +221,10 @@ DomReady.ready(function() {
 				world.after(60000 * 3, function() {
 					connection.broadcast('currentGameState', 'warfare');
 				});
-				control.then(function(mySlot) {	
-					Selection.point.then(function(viewX, viewY, worldX, worldY, selection) {
+				
+				Selection.clear();
+				control.then(function(mySlot) {						
+					Selection.point.only(function(viewX, viewY, worldX, worldY, selection) {
 						if(selection.length > 0)
 							UI.contextMenu(viewX, viewY, [['attack', 'Attack mode'], ['defend', 'Defend mode'], ['scout', 'Scout mode']]).then(function(option) {
 								if(option == 'attack') {
@@ -256,7 +260,7 @@ DomReady.ready(function() {
 			});
 			
 			// warfare state
-			GameStates.warfare.then(function() {
+			GameStates.warfare.only(function() {
 				UI.showStatus('Warfare stage.');
 				world.after(2000, function() {
 					UI.hideStatus();
@@ -294,19 +298,35 @@ DomReady.ready(function() {
 								}
 							});				
 					}, GameStates.warfare);			
+					
+					var surrender = new Deferred();					
+					surrender.once(function() {
+						connection.toHost('surrender');;
+					});
+								
+					world.onRemove(function() {
+						if(world.countGroup('radar', mySlot) + world.countGroup('launcher', mySlot) == 0)
+							surrender.resolve();
+//						else if(world.countGroup(mySlot, 'launcher') == 0)
+//							ui.surrender().then(function() {
+//								surrender.resolve();
+//							});
+					});
 				});
 			});		
 		
 			// end state
-			GameStates.end.then(function() {
+			GameStates.end.only(function() {
 				world.stop();
+				
+				console.log('%cRESTART', 'color: red');
 				
 				UI.showStatus('Game over, everybody died.');
 				setTimeout(function() { 
 					UI.hideStatus(); 
-					connection.toHost('maybeRestart');					
-				
+					connection.toHost('maybeRestart');									
 					connection.hon('maybeRestart', function() {
+						console.log('%cRESTART', 'color: blue');
 						GameStates.restart.resolve();
 						connection.broadcast('currentGameState', 'restart');
 					}, { single: true });
@@ -316,7 +336,7 @@ DomReady.ready(function() {
 			});		
 			
 			// restart state
-			GameStates.restart.then(function() {
+			GameStates.restart.only(function() {
 				UI.showStatus('Restarting game');
 				setTimeout(function() {
 					var gameState = {
@@ -370,6 +390,11 @@ DomReady.ready(function() {
 				if(players[body])
 					return connection.toClient(clientID, 'slotAlreadyTaken');
 				else if(factions.indexOf(body) >= 0) {
+					Object.keys(players).some(function(slot) {
+						if(players[slot].clientID == clientID)
+							connection.broadcast('clearSlot', slot);
+					});
+					
 					players[body] = {
 					    id: body,
 						clientID: clientID,
@@ -387,12 +412,34 @@ DomReady.ready(function() {
 				Object.keys(players).some(function(faction) {
 					if(players[faction].clientID == clientID)					
 						connection.broadcast('clearSlot', faction);
+				});
+			});
+			
+			connection.hon('surrender', function(header, body, data, clientID) {
+				connection.broadcast('surrender', clientID);
+				Object.keys(players).some(function(faction) {
+					if(players[faction].clientID == clientID)					
+						connection.broadcast('clearSlot', faction);
 				})
 			});
 			
 			connection.on('clearSlot', function(header, body) {
 				factionWidget.clearSlot(body);				
 				delete players[body];
+				
+				if(Object.keys(players).length <= 1)
+					connection.toHost('maybeEnd');
+			});
+			
+			connection.hon('maybeEnd', function() {
+				GameStates.warfare.then(function() {
+					if(Object.keys(players).length <= 1) {
+						Object.keys(players).some(function(slot) { 
+							connection.broadcast('winner', JSON.stringify({ faction: slot, name: players[slot].name }));
+						});
+						connection.broadcast('currentGameState', 'end');
+					}
+				});
 			});
 			
 			// ready in init state
@@ -407,7 +454,7 @@ DomReady.ready(function() {
 					}).every(function(slot) {
 						return players[slot].ready;
 					}) && Object.keys(players).length > 1)
-						GameStates.init.then(function() {
+						GameStates.init.once(function() {
 							connection.broadcast('currentGameState', 'prepare');
 						});
 			});

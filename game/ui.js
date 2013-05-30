@@ -15,6 +15,7 @@ DomReady.ready(function() {
 			
 			this.show = function() {
 				node.style.display = 'block';
+				joinSlot = this.joinSlot = new Deferred();
 			}
 			
 			this.hide = function() {

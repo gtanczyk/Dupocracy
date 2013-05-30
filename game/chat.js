@@ -65,6 +65,11 @@ DomReady.ready(function() {
 							var sender = clients.filter(function(client)  { return client.clientID == msg.clientID })[0].name;
 							addLine(sender+': '+msg.body);
 					});
+					
+					connection.on('winner', function(header, body) {
+						body = JSON.parse(body);
+						addLine(body.faction+'('+body.name+') has won!');
+					});
 				
 					connection.hon('chatMsg', function(header, body, data, clientID) {
 						if(body.length > 0)

@@ -74,6 +74,11 @@
 		}
 	}
 	
+	Deferred.prototype.only = function(fn, check) {
+		this.listeners.length  = 0;
+		return this.then(fn, check);
+	}	
+	
 	Deferred.prototype.once = function(fn) {
 		var listener;
 		listener = this.then(function() {

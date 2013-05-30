@@ -77,10 +77,10 @@
 		return listener;
 	};
 
-	Connection.prototype.hon = function(filter, callback) {
+	Connection.prototype.hon = function(filter, callback, opts) {
 		var listener = {
 			filter : /^(\d+)$/,
-			opts: {},
+			opts: opts || {},
 			callback : function(header, body, data) {
 				var clientID = header;
 				var header = body.substring(0, body.indexOf(':'));

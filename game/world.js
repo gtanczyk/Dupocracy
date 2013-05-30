@@ -50,7 +50,19 @@ var world = new (function() {
 		missiles = groups[3];
 		scouts = groups[4];
 		
+		IDmap = {};
+		
+		groups.some(function(group) {
+			group.some(function(object) {
+				IDmap[object.id] = object;
+			});
+		});
+		
 		population = state.population;
+		
+		afterListeners = [];
+		onAddListeners = [];
+		onRemoveListeners = [];
 	}
 	
 	// update
@@ -335,7 +347,7 @@ var world = new (function() {
 	
 	var add = this.add = function(type, x, y, opts, id) {
 		if(!id)
-			onAddListeners.every(function(fn) { 
+			onAddListeners.some(function(fn) { 
 				fn(type, x, y, opts);
 			})
 		else {

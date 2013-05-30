@@ -6,6 +6,11 @@ DomReady.ready(function() {
 		var point = this.point = new Deferred();		
 		
 		var selection = [];
+		
+		this.clear = function() {
+			selection = [];
+		}
+		
 				
 		view.on('contextmenu', function(event) {
 			point.resolve(event.clientX, event.layerY, event.eX, event.eY, selection);
