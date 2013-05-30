@@ -213,12 +213,12 @@ DomReady.ready(function() {
 			GameStates.prepare.only(function() {
 				UI.hideStatus();
 	
-				UI.showStatus('Prepare stage, place launchers and radars. 3 minutes remaining!');
+				UI.showStatus('Prepare stage, place launchers and radars. 2 minutes remaining!');
 				world.after(5000, function() {
 					UI.hideStatus();
 				});
 				
-				world.after(60000 * 3, function() {
+				world.after(60000 * 2, function() {
 					connection.broadcast('currentGameState', 'warfare');
 				});
 				
