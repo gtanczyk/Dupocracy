@@ -45,6 +45,7 @@ var lobby = new (function() {
 						connection.broadcast('roomPingMap', room.name+':'+JSON.stringify(room.pingMap));
 					} else
 						room.pingMap[clientID] = Date.now();
+						
 					return true;
 				}				
 			})
