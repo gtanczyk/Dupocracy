@@ -148,7 +148,7 @@ var UI = new (function() {
 			var addRoom = result.addRoom = function(room) {
 				var node = document.createElement('div');
 				node.className = 'room-lobby';
-				node.innerHTML = '<label>'+escapeHTML(room.name) + '</label>' + '<button>Join</button>';
+				node.innerHTML = '<label>'+escapeHTML(room.name) + ' <i>#players: ' + Object.keys(room.pingMap).length + '</i>' + '</label>' + '<button>Join</button>';
 				node.querySelector('button').addEventListener('click', function() { joinRoom(room); });
 				promptDialogNode.insertBefore(node, promptDialogNode.firstChild);
 				

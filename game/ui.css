@@ -300,6 +300,12 @@ body canvas.fog-of-war {
 	padding: 5px 15px;
 }
 
+.room-lobby label>i {
+	display: inline;
+	font-size: small;
+	font-style: normal;
+}
+
 .room-lobby button {
 	position: absolute;
 	right: 0px;
