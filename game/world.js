@@ -12,9 +12,10 @@ var world = new (function() {
 	var radars = [];
 	var missiles = [];
 	var scouts = [];
+	var explosions = [];
 	
 	var worldTime = 0;
-	var groups = [ launchers, interceptors, radars, missiles, scouts ];
+	var groups = [ launchers, interceptors, radars, missiles, scouts, explosions ];
 	
 	// population hotspots aka cities, players should attack/protect them in order to win 
 	var population = [	{ name: 'Moscow', x: 780, y: 130, r: 20, faction: 'Russia' },
@@ -53,6 +54,7 @@ var world = new (function() {
 		radars = groups[2];
 		missiles = groups[3];
 		scouts = groups[4];
+		explosions = groups[5];
 		
 		IDmap = {};
 		
@@ -95,7 +97,9 @@ var world = new (function() {
 			
 			updateInterceptors(dt);		
 			
-			updateScouts(dt);	
+			updateScouts(dt);
+			
+			updateExplosions(dt);
 			
 			tdt -= dt;
 			dt = Math.min(tdt, 0.1);
@@ -105,6 +109,16 @@ var world = new (function() {
 		
 		lag += tdt;
 		UI.updateWorldTime(worldTime);
+	}
+	
+	function updateExplosions(dt) {
+		var i = explosions.length;
+		while (i --> 0) {
+			var explosion = explosions[i];
+			
+			if(worldTime - explosion.opts.explosionTS > 3000)
+				remove(explosion.id);
+		}
 	}
 	
 	function updateLaunchers(dt) {
@@ -160,6 +174,7 @@ var world = new (function() {
 						if(VMath.distance([missile.x, missile.y], [radar.x, radar.y]) < 16)
 							remove(radar.id);
 					});
+					add('explosion', missile.x, missile.y, { explosionTS: worldTime, faction: missile.opts.faction });
 					remove(missile.id);
 				}					
 									
@@ -174,7 +189,7 @@ var world = new (function() {
 	var sight;
 	
 	function fillSight(object) {
-		if(!object.dead) {
+		if(!object.dead && object.visibilityRadius) {
 			if(!sight[object.opts.faction])
 				sight[object.opts.faction] = { V: {}, H: {} };
 			
@@ -363,10 +378,6 @@ var world = new (function() {
 				id: id, type: type, 
 				x: x, y: y, 
 				width: 16, height: 16, 
-				shape: {
-					interceptor: 'ball', launcher: 'launcher', 
-					scout : 'scout', radar: 'radar', missile: 'arc'
-				}[type],
 				visibilityRadius: {
 					interceptor: 15, launcher: 30, 
 					scout : 50, radar: 150, missile: 20
@@ -380,6 +391,7 @@ var world = new (function() {
 			 type == 'missile' ? missiles :		 
 			 type == 'interceptor' ? interceptors :
 			 type == 'scout' ? scouts :
+			 type == 'explosion' ? explosions :
 				[]).push(object);
 		}
 	};
@@ -468,6 +480,14 @@ var world = new (function() {
 			});
 		}
 		
+		population.some(function(hotspot) {			
+			if(visibleFaction == hotspot.faction)
+				view.lightUp(hotspot.x, hotspot.y, hotspot.visibilityRadius);							
+			
+			var w =  Math.sqrt(hotspot.r) + 5;
+			view.fillRect(hotspot.x-w/2, hotspot.y-w/2, w, w, 'green');
+		});
+		
 		groups.some(function(group) {
 			group.some(function(object) {
 				if(object.dead || !world.visibilityCheck(object, visibility[visibleFaction], visibleFaction))
@@ -477,7 +497,7 @@ var world = new (function() {
 					view.lightUp(object.x, object.y, object.visibilityRadius);				
 				
 				var color = object.selected ? 'yellow' : (object.opts.mode==0?'blue':object.opts.mode==2?'white':'red');
-				if(object.shape == 'launcher') {
+				if(object.type == 'launcher') {
 					view.fillTriangle(object.x, object.y, object.width / 2, color);
 					if(object.opts.switchMode >= 0) {
 						var progress = (worldTime - object.opts.switchModeTS) / 10000;
@@ -485,24 +505,20 @@ var world = new (function() {
 							(object.opts.switchMode==0?'blue':object.opts.switchMode==2?'white':'red'));
 					}
 				}
-				else if(object.shape == 'arc')
+				else if(object.type == 'missile')
 					view.fillArc(object.x, object.y, object.width / 2, color, object.V && Math.atan2(object.V[1], object.V[0]), 1, 0.5);
-				else if(object.shape == 'ball')
+				else if(object.type == 'interceptor')
 					view.fillArc(object.x, object.y, object.width / 8, color, object.V && Math.atan2(object.V[1], object.V[0]), 1, 1);
-				else if(object.shape == 'scout')
+				else if(object.type == 'scout')
 					view.fillArc(object.x, object.y, object.width / 6, 'white', object.V && Math.atan2(object.V[1], object.V[0]), 0.5, 1);
-				else if(object.shape == 'radar')
+				else if(object.type == 'radar')
 					view.fillRect(object.x - object.width/2, object.y-object.height/2, object.width, object.height, color);
+				else if(object.type == 'explosion') {
+					view.drawExplosion(object.x, object.y, (worldTime - object.opts.explosionTS) / 1000);
+				}
 			});
 		});
 		
-		population.some(function(hotspot) {			
-			if(visibleFaction == hotspot.faction)
-				view.lightUp(hotspot.x, hotspot.y, hotspot.visibilityRadius);							
-			
-			var w =  Math.sqrt(hotspot.r) + 5;
-			view.fillRect(hotspot.x-w/2, hotspot.y-w/2, w, w, 'green');
-		});
 	};
 	
 	this.initial = JSON.parse(JSON.stringify(this.store()));

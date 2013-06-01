@@ -86,6 +86,25 @@ var view = new (function() {
 			ctx.restore();
 		}
 		
+		var radgrad;
+	    
+	    this.drawExplosion = function(x, y, t) {
+	    	if(t >= 3)
+	    		return;
+	    	
+	    	ctx.save();
+	    	ctx.translate(x, y);
+	    	ctx.scale(Math.sqrt(t), Math.sqrt(t));
+	    	ctx.globalAlpha = t < 1 ? Math.sqrt(t) : Math.sqrt((3 - t)/2);
+	    	ctx.fillStyle = radgrad;
+	    	ctx.beginPath();
+	    	ctx.arc(0, 0, 25, 0, Math.PI * 2, true);
+	    	ctx.closePath();
+	    	ctx.fill();
+	    	ctx.globalAlpha = 1;
+			ctx.restore();
+	    }
+		
 		this.drawShape = function(points, scale) {
 			scale = scale || 1;
 			ctx.strokeStyle = 'red';
@@ -145,6 +164,10 @@ var view = new (function() {
 				ctxTerrain = canvasTerrain.getContext('2d');
 				ctx = canvas.getContext('2d');
 				ctxFoW = canvasFoW.getContext('2d');
+				
+				radgrad = ctx.createRadialGradient(0,0,15,0,0,25);
+			    radgrad.addColorStop(0, 'rgba(255,255,255,1)');
+			    radgrad.addColorStop(1, 'rgba(255,255,255,0)');
 				
 				terrain.render(0, 0, viewWidth, viewHeight);
 				
