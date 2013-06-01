@@ -10,6 +10,7 @@ var Host = new (function() {
 			// it will resolve getSocket with real websockets connection or fake local one
 			lobby.selectRoom.then(function(room) {
 				UI.showStatus('Connecting to server...');
+				history.pushState(null, room.name, "?"+room.server.host+':'+room.server.port+'/'+room.name);
 				getConnection.resolve(new Connection(new WebSocket('ws://'+room.server.host+':'+room.server.port+'/'+room.name), room.server));
 			});				
 	});
