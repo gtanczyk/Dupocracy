@@ -61,20 +61,38 @@ var view = new (function() {
 				ctx.fillRect(x, y, width, height);			
 		}
 		
-		this.fillArc = function(x, y, radius, color) {
+		this.fillArc = function(x, y, radius, color, angle, scaleX, scaleY) {
+			ctx.save();
 			ctx.fillStyle = color;
+			ctx.translate(x, y);
+			ctx.rotate(angle);
+			if(scaleX && scaleY)
+			ctx.scale(scaleX, scaleY);
 			ctx.beginPath();
-			ctx.arc(x, y, radius, 0, Math.PI*2, true); 
+			ctx.arc(0, 0, radius, 0, Math.PI * 2, true); 
 			ctx.closePath();
 			ctx.fill();
-		}	
+			ctx.restore();
+		}
 		
-		this.drawShape = function(points) {
+		this.fillTriangle = function(x, y, radius, color) {
+			ctx.save();
+			ctx.fillStyle = color;
+			ctx.beginPath();
+			ctx.moveTo(x-radius,y+radius);
+			ctx.lineTo(x+radius,y+radius);
+			ctx.lineTo(x,y-radius);
+			ctx.fill();
+			ctx.restore();
+		}
+		
+		this.drawShape = function(points, scale) {
+			scale = scale || 1;
 			ctx.strokeStyle = 'red';
 			ctx.beginPath();
-			ctx.moveTo(points[0][0], points[0][1]);
+			ctx.moveTo(points[0][0]*scale, points[0][1]*scale);
 			points.some(function(point) {
-				ctx.lineTo(point[0], point[1]);
+				ctx.lineTo(point[0]*scale, point[1]*scale);
 			});		
 			ctx.stroke();
 		}	

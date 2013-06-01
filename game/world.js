@@ -364,8 +364,8 @@ var world = new (function() {
 				x: x, y: y, 
 				width: 16, height: 16, 
 				shape: {
-					interceptor: 'ball', launcher: 'rect', 
-					scout : 'triangle', radar: 'arc', missile: 'arc'
+					interceptor: 'ball', launcher: 'launcher', 
+					scout : 'scout', radar: 'radar', missile: 'arc'
 				}[type],
 				visibilityRadius: {
 					interceptor: 15, launcher: 30, 
@@ -477,14 +477,22 @@ var world = new (function() {
 					view.lightUp(object.x, object.y, object.visibilityRadius);				
 				
 				var color = object.selected ? 'yellow' : (object.opts.mode==0?'blue':object.opts.mode==2?'white':'red');
-				if(object.shape == 'rect')
-					view.fillRect(object.x - object.width/2, object.y - object.height/2, object.width, object.height, color);
+				if(object.shape == 'launcher') {
+					view.fillTriangle(object.x, object.y, object.width / 2, color);
+					if(object.opts.switchMode >= 0) {
+						var progress = (worldTime - object.opts.switchModeTS) / 10000;
+						view.fillTriangle(object.x, object.y, object.width / 2 * progress, 
+							(object.opts.switchMode==0?'blue':object.opts.switchMode==2?'white':'red'));
+					}
+				}
 				else if(object.shape == 'arc')
-					view.fillArc(object.x, object.y, object.width / 2, color);
+					view.fillArc(object.x, object.y, object.width / 2, color, object.V && Math.atan2(object.V[1], object.V[0]), 1, 0.5);
 				else if(object.shape == 'ball')
-					view.fillArc(object.x, object.y, object.width / 8, color);
-				else if(object.shape == 'triangle')
-					view.fillArc(object.x, object.y, object.width / 8, 'white');
+					view.fillArc(object.x, object.y, object.width / 8, color, object.V && Math.atan2(object.V[1], object.V[0]), 1, 1);
+				else if(object.shape == 'scout')
+					view.fillArc(object.x, object.y, object.width / 6, 'white', object.V && Math.atan2(object.V[1], object.V[0]), 0.5, 1);
+				else if(object.shape == 'radar')
+					view.fillRect(object.x - object.width/2, object.y-object.height/2, object.width, object.height, color);
 			});
 		});
 		
