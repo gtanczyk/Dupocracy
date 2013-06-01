@@ -1,7 +1,4 @@
-var Selection;
-
-DomReady.ready(function() {
-	Selection = new (function() {
+var Selection = new (function() {
 		var filter = this.filter = new Deferred();;
 		var point = this.point = new Deferred();		
 		
@@ -63,5 +60,4 @@ DomReady.ready(function() {
 			});
 		
 		});
-	})();
-});
+})();

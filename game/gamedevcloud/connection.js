@@ -1,6 +1,7 @@
 (function(global) {
-	function Connection(socket) {
+	function Connection(socket, server) {
 		this.socketURL = socket.url;
+		this.server = server;
 		
 		this.onListeners = [];
 	

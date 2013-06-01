@@ -1,6 +1,6 @@
 var Chat;
 
-DomReady.ready(function() {
+SourceReady.ready(function() {
 	Chat = new (function() {
 		Host.getConnection.then(function(connection) {
 			var clients = [];

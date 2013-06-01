@@ -1,6 +1,4 @@
-var dupocracy;
-DomReady.ready(function() {
-	dupocracy = new (function() {
+var dupocracy = new (function() {
 		var connect = new Deferred(true);
 		var init = new Deferred();
 		var control;
@@ -213,12 +211,12 @@ DomReady.ready(function() {
 			GameStates.prepare.only(function() {
 				UI.hideStatus();
 	
-				UI.showStatus('Prepare stage, place launchers and radars. 2 minutes remaining!');
+				UI.showStatus('Prepare stage, place launchers and radars. 3 minutes remaining!');
 				world.after(5000, function() {
 					UI.hideStatus();
 				});
 				
-				world.after(60000 * 2, function() {
+				world.after(60000 * 3, function() {
 					connection.broadcast('currentGameState', 'warfare');
 				});
 				
@@ -479,5 +477,4 @@ DomReady.ready(function() {
 				connect.resolve(connection);
 			}, { single: true });
 		});
-	})();
-});
+})();

@@ -4,10 +4,7 @@
   window.requestAnimationFrame = requestAnimationFrame;
 })();
 
-var view;
-
-DomReady.ready(function() {
-	view = new (function() {
+var view = new (function() {
 		var viewWidth, viewHeight;
 		
 		var canvasContainer = document.createElement('div');
@@ -41,28 +38,7 @@ DomReady.ready(function() {
 			canvas.style.cursor = enabled ? 'pointer' : null;
 		}	
 		
-		// asset loading
-		// start doing stuff when background is loaded
-		terrain.dimensions.then(function(width, height) {
-			canvasContainer.style.width = (canvasFoW.width = canvas.width = canvasTerrain.width = viewWidth = width)+'px';
-			canvasContainer.style.height= (canvasFoW.height = canvas.height = canvasTerrain.height = viewHeight = height)+'px';
-			
-			canvasContainer.appendChild(canvasTerrain);
-			canvasContainer.appendChild(canvas);
-			canvasContainer.appendChild(canvasFoW);
-			
-			ctxTerrain = canvasTerrain.getContext('2d');
-			ctx = canvas.getContext('2d');
-			ctxFoW = canvasFoW.getContext('2d');
-			
-			terrain.render(0, 0, viewWidth, viewHeight);
-			
-			requestAnimationFrame(animationFrame);
-			
-			ready.resolve(true);
-		});
-				
-		
+
 		// canvas util
 	
 		var clear = this.clear = function() {
@@ -137,5 +113,26 @@ DomReady.ready(function() {
 			requestAnimationFrame(animationFrame);
 		}
 		
-	})();
-});
+		// asset loading
+		// start doing stuff when background is loaded
+		SourceReady.ready(function(){
+			terrain.dimensions.then(function(width, height) {
+				canvasContainer.style.width = (canvasFoW.width = canvas.width = canvasTerrain.width = viewWidth = width)+'px';
+				canvasContainer.style.height= (canvasFoW.height = canvas.height = canvasTerrain.height = viewHeight = height)+'px';
+				
+				canvasContainer.appendChild(canvasTerrain);
+				canvasContainer.appendChild(canvas);
+				canvasContainer.appendChild(canvasFoW);
+				
+				ctxTerrain = canvasTerrain.getContext('2d');
+				ctx = canvas.getContext('2d');
+				ctxFoW = canvasFoW.getContext('2d');
+				
+				terrain.render(0, 0, viewWidth, viewHeight);
+				
+				requestAnimationFrame(animationFrame);
+				
+				ready.resolve(true);
+			});
+		});
+})();

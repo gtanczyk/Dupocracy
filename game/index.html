@@ -4,29 +4,14 @@
         <link rel="stylesheet" href="ui.css" type="text/css" media="all" />
         <script type="text/javascript" src="init.js">
         </script>    
-        <script type="text/javascript" src="vmath/vmath.js">
-        </script>
-        <script type="text/javascript" src="statemachinka/statemachine.js">
-        </script>
-        <script type="text/javascript" src="gamedevcloud/gamedevcloud.js">
-        </script>
-        <script type="text/javascript" src="gamedevcloud/connection.js">
-        </script>
-        <script type="text/javascript" src="terrain.js">
-        </script>
-        <script type="text/javascript" src="view.js">
-        </script>
-        <script type="text/javascript" src="host.js">
-        </script>
-        <script type="text/javascript" src="ui.js">
-        </script>       
-        <script type="text/javascript" src="world.js">
-        </script>
-        <script type="text/javascript" src="selection.js">
-        </script>        
-        <script type="text/javascript" src="dupocracy.js">
-        </script>
-        <script type="text/javascript" src="chat.js">
+        <script type="text/javascript">
+            DomReady.ready(function() {
+                SourceReady.loadSource(
+                ["vmath/vmath.js", 
+                 "statemachinka/statemachine.js", 
+                 "gamedevcloud/gamedevcloud.js", "gamedevcloud/connection.js", 
+                 "terrain.js", "view.js", "host.js", "ui.js", "world.js", "selection.js", "dupocracy.js", "chat.js", "lobby.js"], '1.0.1');
+            });
         </script>
     </head>
     <body>       

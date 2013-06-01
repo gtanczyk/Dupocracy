@@ -6,6 +6,45 @@ function Asset(source) {
 	assets.push({asset: this, source: source});
 }
 
+// source ready
+
+(function(){
+
+    var SourceReady = window.SourceReady = {};
+    
+    var listeners = [];
+
+    SourceReady.ready = function(fn) {
+    	listeners.push(fn);
+    }
+    
+    SourceReady.loadSource = function(sources, version) {    
+    	var scripts = [];
+
+    	sources.forEach(function(source) {
+            var script = document.createElement('script');
+            script.onload = onLoad;
+            script.src = source + '?'+version;
+            scripts.push(script);
+        });	
+    	
+        DomReady.ready(function(){
+        	document.body.appendChild(scripts.splice(0, 1)[0]);
+        });
+    
+        function onLoad() {
+        	if(scripts.length == 0)                
+        		listeners.forEach(function(listener) {
+        			listener();
+        		})
+    		else
+	            document.body.appendChild(scripts.splice(0, 1)[0]);
+        }
+    }
+    
+
+})();
+
 // dom ready
 
 (function(){

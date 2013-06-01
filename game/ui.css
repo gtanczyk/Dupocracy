@@ -288,3 +288,33 @@ body canvas.fog-of-war {
 	
 	font-family: Monospace;
 }
+
+/* room lobby */
+
+.room-lobby {
+	margin: 0px -10px;
+	position: relative;
+}
+
+.room-lobby label {
+	padding: 5px 15px;
+}
+
+.room-lobby button {
+	position: absolute;
+	right: 0px;
+	top: 0px;
+	margin: 0px;
+}
+
+.room-lobby.new-room {
+	box-shadow: inset 0px 0px 70px rgba(255, 255, 255, 0.39);
+	border-radius: 5px;
+	padding: 5px;
+}
+
+.room-lobby.new-room button {
+	top: 50%;
+	margin-top: -16px;
+	right: 15px;
+}

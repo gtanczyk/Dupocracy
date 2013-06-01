@@ -3,15 +3,20 @@
 		this.apiURI = apiURI || 'http://www.gamedev.pl/api/';
 	}
 
-	GamedevCloud.prototype.getConnection = function() {
+	GamedevCloud.prototype.getConnection = function(channel) {
 		var result = new Deferred();
 		xhrGet(this.apiURI + "proxyservers").then(function(servers) {
 			function checkServer(server) {
-				var socket = new WebSocket('ws://'+server.host+':'+server.port);
+				var url = 'ws://'+server.host+':'+server.port+'/'+channel;
+				var socket = new WebSocket(url);
 				
 				socket.onopen = function() {
-					socket.close();
-					result.resolve(new Connection(new WebSocket('ws://'+server.host+':'+server.port)));
+					socket.onclose = null;
+					socket.close();					
+					var connection = new Connection(socket = new WebSocket(url), server)
+					socket.onopen = function(){
+						result.resolve(connection);
+					};
 				};
 				
 				socket.onclose = socket.onerror = function() {

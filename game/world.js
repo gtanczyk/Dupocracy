@@ -219,7 +219,7 @@ var world = new (function() {
 	
 	function updateLauncher(launcher, worldTime, dt, missile) {
 		var target = IDmap[launcherTargets[launcher.id]];
-		if(!target && VMath.distance([launcher.x, launcher.y], [missile.x, missile.y]) < 180 || target && launcher.opts.nextLaunchTS < worldTime) {
+		if(!target && VMath.distance([launcher.x, launcher.y], [missile.x, missile.y]) < 500 || target && launcher.opts.nextLaunchTS < worldTime) {
 			launcher.opts.nextLaunchTS = worldTime + 2000;
 			launcherTargets[launcher.id] = missile.id;
 			add('interceptor', launcher.x, launcher.y, { targetID: missile.id, faction: launcher.opts.faction });					

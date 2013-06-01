@@ -1,7 +1,4 @@
-var UI;
-
-DomReady.ready(function() {
-	UI = new (function() {	
+var UI = new (function() {	
 		// faction widget
 	
 		this.FactionWidget = function(factions) {
@@ -122,6 +119,47 @@ DomReady.ready(function() {
 	        }, false);        	    	        
 	
 			return result;
+		}		
+		
+		// room lobby dialog
+		this.roomLobby = function(rooms) {
+			var result = {};
+			
+			var createRoom, joinRoom;
+			
+			result.createRoom = function(fn) {
+				createRoom = fn;
+				return result;
+			};
+			
+			result.joinRoom = function(fn) {
+				joinRoom = fn;
+				return result;
+			};			
+			
+			this.promptDialog(true);
+
+			promptDialogNode.innerHTML = '<h3>Select room</h3>';
+			
+			rooms.forEach(function(room) {
+				var node = document.createElement('div');
+				node.className = 'room-lobby';
+				node.innerHTML = '<label>'+escapeHTML(room.name) + '</label>' + '<button>Join</button>';
+				node.querySelector('button').addEventListener('click', function() { joinRoom(room) });
+				promptDialogNode.appendChild(node);
+			});
+			
+			var newRoom = document.createElement('form');
+			newRoom.className = 'room-lobby new-room';
+			newRoom.innerHTML = '<input type="text" placeholder="Create new room"/><button>Create</button>';
+			promptDialogNode.appendChild(newRoom);
+			
+			newRoom.addEventListener('submit', function(event) {
+				event.preventDefault();
+				createRoom(this.querySelector('input').value);
+			});
+	
+			return result;
 		}			
 	
 		// context menus
@@ -211,5 +249,4 @@ DomReady.ready(function() {
 		}
 		
 		
-	})();
-});
+})();
