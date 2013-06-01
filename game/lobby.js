@@ -29,23 +29,45 @@ var lobby = new (function() {
 			room = JSON.parse(body);
 			rooms.push(room);
 		});						
+		
+		connection.on('removeRoom', function(header, body) {
+			rooms = rooms.filter(function(room) {
+				return room.name !== body;
+			});
+		});
 
-		connection.toHost('getRooms');		
-	
+		connection.toHost('getRooms');	
+		
+		setInterval(function() {
+			rooms.forEach(function(room) {
+				if(Date.now() - room.lastPing > 30*1000)
+					connection.broadcast('removeRoom', room.name)
+			});
+		}, 10 * 1000);	
 	
 		var getRooms = new Deferred();
 		getRooms.once(function(rooms) {
 			UI.hideStatus();
-			UI.roomLobby(rooms).
+			var lobbyUI = UI.roomLobby(rooms).
 				createRoom(function(name) {
-					var room = { name: name, server: connection.server };
+					var room = { name: name, server: connection.server, lastPing: Date.now() };
 					connection.toHost('newRoom', JSON.stringify(room));
 					connection.on('roomCreated', function() {
 						selectRoom.resolve(room);
 					});
 				}).joinRoom(function(room) {
 					selectRoom.resolve(room);
-				});
+				});			
+			var removeRoom = connection.on('removeRoom', function(header, body) {
+				lobbyUI.removeRoom(body);
+			});			
+			var newRoom = connection.on('newRoom', function(header, body) {
+				lobbyUI.addRoom(JSON.parse(body));
+			});			
+			selectRoom.then(function() {
+				removeRoom.remove();
+				newRoom.remove();
+			});
 		});
 	});
 })();

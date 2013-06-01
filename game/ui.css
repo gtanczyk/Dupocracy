@@ -308,9 +308,13 @@ body canvas.fog-of-war {
 }
 
 .room-lobby.new-room {
-	box-shadow: inset 0px 0px 70px rgba(255, 255, 255, 0.39);
+	box-shadow: inset 0px 0px 70px rgba(255, 255, 255, 0.2);
 	border-radius: 5px;
 	padding: 5px;
+}
+
+h3+.room-lobby.new-room {
+	margin-top: 15px;
 }
 
 .room-lobby.new-room button {

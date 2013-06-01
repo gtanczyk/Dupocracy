@@ -135,19 +135,32 @@ var UI = new (function() {
 			result.joinRoom = function(fn) {
 				joinRoom = fn;
 				return result;
+			};
+			
+			var removeRoom = {};			
+			result.removeRoom = function(name) {
+				if(removeRoom[name]) {
+					removeRoom[name].resolve();
+					delete removeRoom[name];
+				}
 			};			
 			
-			this.promptDialog(true);
-
-			promptDialogNode.innerHTML = '<h3>Select room</h3>';
-			
-			rooms.forEach(function(room) {
+			var addRoom = result.addRoom = function(room) {
 				var node = document.createElement('div');
 				node.className = 'room-lobby';
 				node.innerHTML = '<label>'+escapeHTML(room.name) + '</label>' + '<button>Join</button>';
-				node.querySelector('button').addEventListener('click', function() { joinRoom(room) });
-				promptDialogNode.appendChild(node);
-			});
+				node.querySelector('button').addEventListener('click', function() { joinRoom(room); });
+				promptDialogNode.insertBefore(node, promptDialogNode.firstChild);
+				
+				(removeRoom[room.name] = new Deferred()).once(function() {
+					promptDialogNode.removeChild(node);
+				});
+			}
+			
+			this.promptDialog(true);
+			promptDialogNode.innerHTML = '<h3>Select room</h3>';
+			
+			rooms.forEach(addRoom);
 			
 			var newRoom = document.createElement('form');
 			newRoom.className = 'room-lobby new-room';
