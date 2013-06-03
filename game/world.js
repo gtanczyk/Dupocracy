@@ -138,7 +138,7 @@ var world = new (function() {
 				
 				launcher.opts.launchTS = worldTime;
 				if(launcher.opts.mode == 1 &&  launcher.opts.targetMode == 1)
-					add('missile', launcher.x, launcher.y, { tx: launcher.opts.target[0], ty: launcher.opts.target[1], faction: launcher.opts.faction });				
+					add('missile', launcher.x, launcher.y, { sx: launcher.x, sy: launcher.y, tx: launcher.opts.target[0], ty: launcher.opts.target[1], faction: launcher.opts.faction });				
 				else if(launcher.opts.mode == 2 &&  launcher.opts.targetMode == 2)
 					add('scout', launcher.x, launcher.y, { tx: launcher.opts.target[0], ty: launcher.opts.target[1], faction: launcher.opts.faction });	
 				
@@ -490,6 +490,9 @@ var world = new (function() {
 		
 		groups.some(function(group) {
 			group.some(function(object) {
+				if(object.type == 'launcher' && object.opts.launchTS && (worldTime - object.opts.launchTS) < 7000)
+					view.drawLaunch(object.x, object.y, object.width, (worldTime - object.opts.launchTS) / 1000);
+				
 				if(object.dead || !world.visibilityCheck(object, visibility[visibleFaction], visibleFaction))
 					return;
 				
@@ -505,8 +508,9 @@ var world = new (function() {
 							(object.opts.switchMode==0?'blue':object.opts.switchMode==2?'white':'red'));
 					}
 				}
-				else if(object.type == 'missile')
-					view.fillArc(object.x, object.y, object.width / 2, color, object.V && Math.atan2(object.V[1], object.V[0]), 1, 0.5);
+				else if(object.type == 'missile') {
+					view.drawMissile(object.opts.sx, object.opts.sy, object.x, object.y, object.opts.tx, object.opts.ty, object.width / 2, color, object.V && Math.atan2(object.V[1], object.V[0]), 1, 0.5);
+				}
 				else if(object.type == 'interceptor')
 					view.fillArc(object.x, object.y, object.width / 8, color, object.V && Math.atan2(object.V[1], object.V[0]), 1, 1);
 				else if(object.type == 'scout')
