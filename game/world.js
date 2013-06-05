@@ -189,7 +189,7 @@ var world = new (function() {
 	var sight;
 	
 	function fillSight(object) {
-		if(!object.dead && object.visibilityRadius) {
+		if(!object.dead && object.visibilityRadius > 0) {
 			if(!sight[object.opts.faction])
 				sight[object.opts.faction] = { V: {}, H: {} };
 			
@@ -379,8 +379,8 @@ var world = new (function() {
 				x: x, y: y, 
 				width: 16, height: 16, 
 				visibilityRadius: {
-					interceptor: 15, launcher: 30, 
-					scout : 50, radar: 150, missile: 20
+					interceptor: 0, launcher: 30, 
+					scout : 50, radar: 150, missile: 0
 				}[type],
 				ft: 0, opts: opts 
 			};
@@ -469,7 +469,7 @@ var world = new (function() {
 			
 			groups.some(function(group) {
 				group.some(function(object) {
-					if(!object.dead && visibleFaction == object.opts.faction)
+					if(!object.dead && visibleFaction == object.opts.faction && object.visibilityRadius > 0)
 						fill(object);
 				});
 			});
@@ -496,7 +496,7 @@ var world = new (function() {
 				if(object.dead || !world.visibilityCheck(object, visibility[visibleFaction], visibleFaction))
 					return;
 				
-				if(visibleFaction == object.opts.faction)
+				if(visibleFaction == object.opts.faction && object.visibilityRadius > 0)
 					view.lightUp(object.x, object.y, object.visibilityRadius);				
 				
 				var color = object.selected ? 'yellow' : (object.opts.mode==0?'blue':object.opts.mode==2?'white':'red');
