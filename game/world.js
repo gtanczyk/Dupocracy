@@ -156,8 +156,17 @@ var world = new (function() {
 				if(!missile.V)
 					missile.V = VMath.normalize([ missile.opts.tx - missile.x, missile.opts.ty - missile.y ]);
 				var V = missile.V;
-				missile.x = missile.x + V[0]*dt/40; 
-				missile.y = missile.y + V[1]*dt/40;
+				missile.opts.t = VMath.distance([missile.x, missile.y], [missile.opts.tx, missile.opts.ty])/ missile.opts.dist;
+				var f = Math.min(Math.sqrt(worldTime - missile.opts.st)/100, 3) + Math.sqrt(1.01 - missile.opts.t);
+				missile.x = missile.x + V[0]*dt/30 * f; 
+				missile.y = missile.y + V[1]*dt/30 * f;
+				missile.opts.proj = de.casteljau(missile.opts.curve, 1-missile.opts.t);
+				
+				if(Math.abs(worldTime - missile.opts.lt) > 300) {
+					missile.opts.lt = worldTime;
+					missile.opts.tail.splice(0, 0, missile.opts.proj);
+					missile.opts.tail.length = Math.min(50, missile.opts.tail.length);
+				}
 				
 				if(VMath.length([ missile.opts.tx - missile.x, missile.opts.ty - missile.y ]) < 8 && !missile.dead) {
 					missile.V = [0, 0]
@@ -234,7 +243,7 @@ var world = new (function() {
 	
 	function updateLauncher(launcher, worldTime, dt, missile) {
 		var target = IDmap[launcherTargets[launcher.id]];
-		if(!target && VMath.distance([launcher.x, launcher.y], [missile.x, missile.y]) < 500 || target && launcher.opts.nextLaunchTS < worldTime) {
+		if(!target && VMath.distance([launcher.x, launcher.y], missile.opts.proj) < 500 || target && launcher.opts.nextLaunchTS < worldTime) {
 			launcher.opts.nextLaunchTS = worldTime + 2000;
 			launcherTargets[launcher.id] = missile.id;
 			add('interceptor', launcher.x, launcher.y, { sx: launcher.x, sy: launcher.y, tx: missile.x, ty: missile.y, targetID: missile.id, faction: launcher.opts.faction });					
@@ -385,6 +394,25 @@ var world = new (function() {
 				ft: 0, opts: opts 
 			};
 			
+			if(object.type=='missile') {
+				var sx = object.opts.sx, sy = object.opts.sy, tx = object.opts.tx, ty = object.opts.ty;
+				object.opts.dist = VMath.distance([sx, sy], [tx, ty]);
+				var N = VMath.normal([sx, sy], [tx, ty]); 
+				N = N[0][1] > N[1][1] ? N[0] : N[1];
+				N = VMath.scale(N, Math.pow(object.opts.dist, 0.8));
+				var S = [sx, sy], E = [tx, ty];
+				object.opts.curve = [
+		            S,
+		            VMath.sub(S, N),
+		            VMath.sub(E, N),
+		            E
+		        ];
+				object.opts.t = 0;
+				object.opts.tail = [[sx, sy]]
+				object.opts.lt = worldTime;
+				object.opts.st = worldTime;
+			}
+			
 			IDmap[object.id] = object;
 			(type == 'launcher' ? launchers : 
 			 type == 'radar' ? radars :
@@ -445,8 +473,12 @@ var world = new (function() {
 		visibleFaction = faction;
 	}
 	
+	var visibilityMap = {};
+	
 	var visibilityCheck = this.visibilityCheck = function(object, sight, faction) {
-		return !faction || (object.opts.faction == faction) || sight.V[Math.floor(object.y / 16)] && sight.H[Math.floor(object.x / 16)];
+		var ox = Math.floor((object.opts.proj && object.opts.proj[0] || object.x) / 16);
+		var oy = Math.floor((object.opts.proj && object.opts.proj[1] || object.y) / 16);
+		return !faction || (object.opts.faction == faction) || sight.V[oy] && sight.H[ox];
 	}
 	
 	this.render = function() {
@@ -493,8 +525,11 @@ var world = new (function() {
 				if(object.type == 'launcher' && object.opts.launchTS && (worldTime - object.opts.launchTS) < 7000)
 					view.drawLaunch(object.x, object.y, object.width, (worldTime - object.opts.launchTS) / 1000);
 				
-				if(object.dead || !world.visibilityCheck(object, visibility[visibleFaction], visibleFaction))
+				if(object.dead || !visibilityMap[object.id] && !world.visibilityCheck(object, visibility[visibleFaction], visibleFaction))
 					return;
+				
+				if(!visibilityMap[object.id])
+					visibilityMap[object.id] = true;
 				
 				if(visibleFaction == object.opts.faction && object.visibilityRadius > 0)
 					view.lightUp(object.x, object.y, object.visibilityRadius);				
@@ -509,8 +544,7 @@ var world = new (function() {
 					}
 				}
 				else if(object.type == 'missile') {
-					object.opts.proj = view.drawMissile(object.opts.sx, object.opts.sy, object.x, object.y, object.opts.tx, object.opts.ty, 
-						object.width / 2, color, object.V && Math.atan2(object.V[1], object.V[0]), 1, 0.5);
+					view.drawMissile(object.opts.curve, object.opts.t, object.opts.tail, object.width / 2, color, 1, 0.5);
 				}
 				else if(object.type == 'interceptor') {
 					view.fillArc(object.x, object.y, object.width / 8, color, object.V && Math.atan2(object.V[1], object.V[0]), 1, 1);

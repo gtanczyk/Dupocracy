@@ -100,31 +100,29 @@ var view = new (function() {
 			ctx.restore();
 		}
 		
-		this.drawMissile = function(sx, sy, x, y, tx, ty, radius, color, angle, scaleX, scaleY) {
-			var curve = [
-	            [sx, sy],
-	            [sx + (tx - sx)*0.3, sy - (ty - sy)*0.3],
-	            [sx + (tx - sx)*0.7, sy - (ty - sy)*0.3],
-	            [tx, ty]
-	        ];
-			
-			var t = VMath.distance([x, y], [tx, ty]) / VMath.distance([sx, sy], [tx, ty]);
-			
-			var point = de.casteljau(curve, 1-t);
-			
-			curve = de.divideBezierCurve(curve, 1-t)[0];
-	        
+		this.drawMissile = function(curve, t, tail, radius, color, scaleX, scaleY) {
+			var point = de.casteljau(curve, 1-t);	
+			var sx = curve[0], sy = curve[1];
+			curve = de.divideBezierCurve(curve, 1-t)[0];	        
 	        
 	        ctx.save();
+	        ctx.lineWidth = 4;
 	        ctx.globalAlpha = 1;
 	        ctx.strokeStyle = 'red';
-	        ctx.beginPath();
-	        ctx.moveTo(sx, sy);
-	        ctx.bezierCurveTo(curve[1][0], curve[1][1], curve[2][0], curve[2][1], point[0], point[1]);	       
+	        var i = tail.length;
+	        while(i --> 0) {
+    	        ctx.beginPath();
+	        	ctx.lineTo(tail[i][0], tail[i][1]);	       
+	        	if(i > 0)
+	        	    ctx.lineTo(tail[i-1][0], tail[i-1][1]);	       	        	
+	        	ctx.globalAlpha = 1 - (i / tail.length);
+	        	ctx.stroke();
+	        }
+            ctx.lineTo(point[0], point[1]);
 	        ctx.stroke();	        
 	        ctx.restore();
 	        
-	        angle = Math.atan2(point[1] - curve[2][1], point[0] - curve[2][0]);
+	        var angle = Math.atan2(point[1] - curve[2][1], point[0] - curve[2][0]);
 	        
 			view.fillArc(point[0], point[1], radius, color, angle, scaleX, scaleY); 
 			
