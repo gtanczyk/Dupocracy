@@ -156,9 +156,10 @@ var world = new (function() {
 				if(!missile.V)
 					missile.V = VMath.normalize([ missile.opts.tx - missile.x, missile.opts.ty - missile.y ]);
 				var V = missile.V;
-				missile.x = missile.x + V[0]*dt/40; 
-				missile.y = missile.y + V[1]*dt/40;
 				missile.opts.t = VMath.distance([missile.x, missile.y], [missile.opts.tx, missile.opts.ty])/ missile.opts.dist;
+				var f = Math.min(Math.sqrt(worldTime - missile.opts.st)/100, 3) + Math.sqrt(1.01 - missile.opts.t);
+				missile.x = missile.x + V[0]*dt/30 * f; 
+				missile.y = missile.y + V[1]*dt/30 * f;
 				missile.opts.proj = de.casteljau(missile.opts.curve, 1-missile.opts.t);
 				
 				if(Math.abs(worldTime - missile.opts.lt) > 300) {
@@ -396,15 +397,20 @@ var world = new (function() {
 			if(object.type=='missile') {
 				var sx = object.opts.sx, sy = object.opts.sy, tx = object.opts.tx, ty = object.opts.ty;
 				object.opts.dist = VMath.distance([sx, sy], [tx, ty]);
+				var N = VMath.normal([sx, sy], [tx, ty]); 
+				N = N[0][1] > N[1][1] ? N[0] : N[1];
+				N = VMath.scale(N, Math.pow(object.opts.dist, 0.8));
+				var S = [sx, sy], E = [tx, ty];
 				object.opts.curve = [
-		            [sx, sy],
-		            [sx, sy - Math.pow(object.opts.dist, 0.9)],
-		            [tx, sy - Math.pow(object.opts.dist, 0.6)],
-		            [tx, ty]
+		            S,
+		            VMath.sub(S, N),
+		            VMath.sub(E, N),
+		            E
 		        ];
 				object.opts.t = 0;
 				object.opts.tail = [[sx, sy]]
 				object.opts.lt = worldTime;
+				object.opts.st = worldTime;
 			}
 			
 			IDmap[object.id] = object;
