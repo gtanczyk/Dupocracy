@@ -105,6 +105,13 @@ body canvas.fog-of-war {
 	color: white;
 	border: white;
 	cursor: pointer;
+	transition: background 0.4s linear, color 0.4s linear;
+	-webkit-transition: background 0.4s linear, color 0.4s linear;
+}
+
+.cmenu button:hover {
+	background: white;
+	color: black;
 }
 
 /* dialog heading */

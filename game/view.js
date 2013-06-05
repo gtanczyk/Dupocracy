@@ -86,6 +86,55 @@ var view = new (function() {
 			ctx.restore();
 		}
 		
+		var launchImage = new Image();
+		launchImage.src = 'assets/launch.png';
+		
+		this.drawLaunch = function(x, y, radius, t) {
+			ctx.save();
+			ctx.globalAlpha = t < 1 ? Math.sqrt(t) : Math.sqrt((7 - t)/2);
+			ctx.translate(x-launchImage.width/2, y-launchImage.height/2);
+			ctx.rotate(0);
+			ctx.drawImage(launchImage, 0, 0, launchImage.width, launchImage.height, 0, 0, launchImage.width, launchImage.height);
+			
+			ctx.globalAlpha = 1;
+			ctx.restore();
+		}
+		
+		this.drawMissile = function(sx, sy, x, y, tx, ty, radius, color, angle, scaleX, scaleY) {
+			var curve = [
+	            [sx, sy],
+	            [sx + (tx - sx)*0.3, sy - (ty - sy)*0.3],
+	            [sx + (tx - sx)*0.7, sy - (ty - sy)*0.3],
+	            [tx, ty]
+	        ];
+			
+			var t = VMath.distance([x, y], [tx, ty]) / VMath.distance([sx, sy], [tx, ty]);
+			
+			var point = de.casteljau(curve, 1-t);
+			
+			curve = de.divideBezierCurve(curve, 1-t)[0];
+	        
+	        
+	        ctx.save();
+	        ctx.globalAlpha = 1;
+	        ctx.strokeStyle = 'red';
+	        ctx.beginPath();
+	        ctx.moveTo(sx, sy);
+	        ctx.bezierCurveTo(curve[1][0], curve[1][1], curve[2][0], curve[2][1], point[0], point[1]);	       
+	        ctx.stroke();	        
+	        ctx.restore();
+	        
+	        angle = Math.atan2(point[1] - curve[2][1], point[0] - curve[2][0]);
+	        
+			view.fillArc(point[0], point[1], radius, color, angle, scaleX, scaleY); 
+			
+			return point;
+		}
+		
+		this.drawInterceptor = function(sx, sy, x, y, tx, ty, radius, color, angle, scaleX, scaleY) {
+			this.drawMissile(x, y, radius, color, angle, scaleX, scaleY);
+		}
+		
 		var radgrad;
 	    
 	    this.drawExplosion = function(x, y, t) {

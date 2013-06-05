@@ -204,6 +204,11 @@ var UI = new (function() {
 			
 			currentMenu = node;
 			
+			view.on('click', function() {
+				UI.remove(node);
+				currentMenu = null;
+			});
+			
 			return result;
 		}
 		
