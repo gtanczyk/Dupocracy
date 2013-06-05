@@ -127,6 +127,12 @@ var view = new (function() {
 	        angle = Math.atan2(point[1] - curve[2][1], point[0] - curve[2][0]);
 	        
 			view.fillArc(point[0], point[1], radius, color, angle, scaleX, scaleY); 
+			
+			return point;
+		}
+		
+		this.drawInterceptor = function(sx, sy, x, y, tx, ty, radius, color, angle, scaleX, scaleY) {
+			this.drawMissile(x, y, radius, color, angle, scaleX, scaleY);
 		}
 		
 		var radgrad;

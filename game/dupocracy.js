@@ -216,7 +216,7 @@ var dupocracy = new (function() {
 					UI.hideStatus();
 				});
 				
-				world.after(60000 * 2, function() {
+				world.after(60000 * 0.2, function() {
 					connection.broadcast('currentGameState', 'warfare');
 				});
 				

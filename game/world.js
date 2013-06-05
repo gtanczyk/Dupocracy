@@ -15,7 +15,7 @@ var world = new (function() {
 	var explosions = [];
 	
 	var worldTime = 0;
-	var groups = [ launchers, interceptors, radars, missiles, scouts, explosions ];
+	var groups = [ launchers, missiles, interceptors, radars, scouts, explosions ];
 	
 	// population hotspots aka cities, players should attack/protect them in order to win 
 	var population = [	{ name: 'Moscow', x: 780, y: 130, r: 20, faction: 'Russia' },
@@ -237,7 +237,7 @@ var world = new (function() {
 		if(!target && VMath.distance([launcher.x, launcher.y], [missile.x, missile.y]) < 500 || target && launcher.opts.nextLaunchTS < worldTime) {
 			launcher.opts.nextLaunchTS = worldTime + 2000;
 			launcherTargets[launcher.id] = missile.id;
-			add('interceptor', launcher.x, launcher.y, { targetID: missile.id, faction: launcher.opts.faction });					
+			add('interceptor', launcher.x, launcher.y, { sx: launcher.x, sy: launcher.y, tx: missile.x, ty: missile.y, targetID: missile.id, faction: launcher.opts.faction });					
 		}
 	}
 	
@@ -247,9 +247,9 @@ var world = new (function() {
 			var interceptor = interceptors[j];
 			interceptor.ft += dt / 1000;
 			var target = IDmap[interceptor.opts.targetID];
-			var dP = target ? [ target.x - interceptor.x, target.y - interceptor.y ] :
-							  interceptor.V;
-			if((target && interceptor.ft < 20 || !target && interceptor.ft < 10) && !interceptor.dead && dP) {										
+			var dP = target && target.opts.proj ? [ target.opts.proj[0] - interceptor.x, target.opts.proj[1] - interceptor.y ] :
+							  interceptor.V;			
+			if((target && interceptor.ft < 20 || !target && interceptor.ft < 10) && !interceptor.dead && dP) {
 				var distance = VMath.length(dP);
 				var V = interceptor.V = VMath.scale(dP, 1 / distance);
 				interceptor.x = interceptor.x + V[0]*dt/35; 
@@ -509,11 +509,12 @@ var world = new (function() {
 					}
 				}
 				else if(object.type == 'missile') {
-					view.drawMissile(object.opts.sx, object.opts.sy, object.x, object.y, object.opts.tx, object.opts.ty, object.width / 2, color, object.V && Math.atan2(object.V[1], object.V[0]), 1, 0.5);
+					object.opts.proj = view.drawMissile(object.opts.sx, object.opts.sy, object.x, object.y, object.opts.tx, object.opts.ty, 
+						object.width / 2, color, object.V && Math.atan2(object.V[1], object.V[0]), 1, 0.5);
 				}
-				else if(object.type == 'interceptor')
+				else if(object.type == 'interceptor') {
 					view.fillArc(object.x, object.y, object.width / 8, color, object.V && Math.atan2(object.V[1], object.V[0]), 1, 1);
-				else if(object.type == 'scout')
+				} else if(object.type == 'scout')
 					view.fillArc(object.x, object.y, object.width / 6, 'white', object.V && Math.atan2(object.V[1], object.V[0]), 0.5, 1);
 				else if(object.type == 'radar')
 					view.fillRect(object.x - object.width/2, object.y-object.height/2, object.width, object.height, color);
