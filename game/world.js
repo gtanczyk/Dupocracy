@@ -403,8 +403,7 @@ var world = new (function() {
 				var S = [sx, sy], E = [tx, ty];
 				object.opts.curve = [
 		            S,
-		            VMath.sub(S, N),
-		            VMath.sub(E, N),
+		            VMath.add(S, VMath.sub(VMath.scale(VMath.sub(E, S), 0.5), N)),
 		            E
 		        ];
 				object.opts.t = 0;
