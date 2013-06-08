@@ -122,7 +122,7 @@ var view = new (function() {
 	        ctx.stroke();	        
 	        ctx.restore();
 	        
-	        var angle = Math.atan2(point[1] - curve[2][1], point[0] - curve[2][0]);
+	        var angle = Math.atan2(point[1] - curve[1][1], point[0] - curve[1][0]);
 	        
 			view.fillArc(point[0], point[1], radius, color, angle, scaleX, scaleY); 
 			
