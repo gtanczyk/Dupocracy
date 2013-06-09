@@ -18,7 +18,8 @@ var world = new (function() {
 	var groups = [ launchers, missiles, interceptors, radars, scouts, explosions ];
 	
 	// population hotspots aka cities, players should attack/protect them in order to win 
-	var population = [	{ name: 'Moscow', x: 780, y: 130, r: 20, faction: 'Russia' },
+	var population = this.population = [
+						{ name: 'Moscow', x: 780, y: 130, r: 20, faction: 'Russia' },
 						{ name: 'Berlin', x: 680, y: 170, r: 20, faction: 'Europe' },
 						{ name: 'Chicago', x: 260, y: 170, r: 20, faction: 'North America' },
 						{ name: 'Cape Town', x: 710, y: 470, r: 20, faction: 'Africa' },
@@ -327,7 +328,15 @@ var world = new (function() {
 		if(!lastUpdate)
 			this.run();
 		
-		afterListeners.push({ t: worldTime+t, fn: fn });
+		var event = { t: worldTime+t, fn: fn }
+		
+		if(!afterListeners.some(function(listener, idx) {
+			if(listener.t > event.t) {
+				afterListeners.splice(idx, 0, event);
+				return true;
+			}
+		}))
+			afterListeners.push(event);
 	}
 	
 	// constraint check

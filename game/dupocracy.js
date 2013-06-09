@@ -166,7 +166,7 @@ var dupocracy = new (function() {
 	
 			connection.hon('makeObject', function(header, body, data, clientID) {
 				body = JSON.parse(body);
-				if(players[body.opts.faction].clientID == clientID &&
+				if((players[body.opts.faction]=='robot' || players[body.opts.faction].clientID == clientID) &&
 					world.canAdd(body.type, body.x, body.y, body.opts)) {
 					body.id = world.nextID();
 					connection.broadcast('newObject', JSON.stringify(body));
@@ -220,6 +220,18 @@ var dupocracy = new (function() {
 					connection.broadcast('currentGameState', 'warfare');
 				});
 				
+				var robots = {};
+				
+				factions.some(function(faction) {
+					if(!players[faction])
+						connection.broadcast('robot', faction);
+				});
+				
+				connection.on('robot', function(header, faction) {
+					robots[faction] = new AIRobot(faction, world, connection, GameStates.prepare, GameStates.warfare);
+					players[faction] = 'robot';
+				});
+				
 				Selection.clear();
 				control.then(function(mySlot) {						
 					Selection.point.only(function(viewX, viewY, worldX, worldY, selection) {
@@ -251,7 +263,7 @@ var dupocracy = new (function() {
 					Selection.filter.resolve(mySlot);
 					
 					world.onAdd(function(type, x, y, opts) {
-						if(mySlot && opts.faction == mySlot)
+						if(mySlot && opts.faction == mySlot || players[opts.faction] == 'robot')
 							connection.toHost('makeObject', JSON.stringify({ type: type, x: x, y: y, opts: opts }));
 					});
 				});
