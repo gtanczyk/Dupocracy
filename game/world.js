@@ -69,6 +69,8 @@ var world = new (function() {
 		afterListeners = [];
 		onAddListeners = [];
 		onRemoveListeners = [];
+		
+		visibilityMap = {};
 	}
 	
 	// update
