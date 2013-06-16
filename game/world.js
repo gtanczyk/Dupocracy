@@ -465,8 +465,9 @@ var world = new (function() {
 		
 		groups.some(function(group) {
 			return group.some(function(object) {
-				if(!object.dead && rect && VMath.insideRect([object.x, object.y], rect) || 
-					VMath.distance([x, y], [object.x, object.y]) < r) {
+				if((!object.dead && rect && VMath.insideRect([object.x, object.y], rect) 
+						|| VMath.distance([x, y], [object.x, object.y]) < r) 
+						&& (!visibleFaction || visibilityCheck(object, visibility[visibleFaction], visibleFaction))) {
 					result.push(object);
 					return !!!rect;
 				}
