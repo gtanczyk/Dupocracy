@@ -40,6 +40,9 @@ var UI = new (function() {
 			document.body.appendChild(node);
 			
 			var markSlot = this.markSlot = function(slot, name) {
+				if(!factionNode[slot])
+					return;
+					
 				name = escapeHTML(name);
 				factionNode[slot].querySelector('span').innerHTML = name && (' '+ name +'') || '<button>Join</button>';
 				if(!name)

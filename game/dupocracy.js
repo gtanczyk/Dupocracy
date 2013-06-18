@@ -228,9 +228,23 @@ var dupocracy = new (function() {
 				});
 				
 				connection.on('robot', function(header, faction) {
-					robots[faction] = new AIRobot(faction, world, connection, GameStates.prepare, GameStates.warfare);
+					robots[faction] = new AIRobot(faction, world, connection, GameStates.prepare, GameStates.warfare, GameStates.end);
 					players[faction] = 'robot';
 				});
+				
+				/** @NOT WORKING :( */
+				
+//				var emptyFactions = factions.filter(function(faction) { return !players[faction] });				
+//				if(emptyFactions.length > 0)
+//					connection.broadcast('robot', JSON.stringify(emptyFactions));				
+//				
+//				connection.on('robot', function(header, body) {
+//					body = JSON.parse(body);
+//					body.some(function(faction) {
+//						robots[faction] = new AIRobot(faction, world, connection, GameStates.prepare, GameStates.warfare, GameStates.end);
+//						players[faction] = 'robot';
+//					});
+//				}, { single: true });
 				
 				Selection.clear();
 				control.then(function(mySlot) {						
@@ -311,16 +325,14 @@ var dupocracy = new (function() {
 					
 					var surrender = new Deferred();					
 					surrender.once(function() {
-						connection.toHost('surrender');;
+						connection.toHost('surrender');
 					});
 								
-					world.onRemove(function() {
+					world.onRemove(function(objectID, faction) {
 						if(world.countGroup('radar', mySlot) + world.countGroup('launcher', mySlot) == 0)
 							surrender.resolve();
-//						else if(world.countGroup(mySlot, 'launcher') == 0)
-//							ui.surrender().then(function() {
-//								surrender.resolve();
-//							});
+						if(connection.isHost && mySlot!=faction && (world.countGroup('radar', faction) + world.countGroup('launcher', faction)) == 0)
+							connection.broadcast('clearSlot', faction);
 					});
 				});
 			});		
@@ -434,6 +446,8 @@ var dupocracy = new (function() {
 			});
 			
 			connection.on('clearSlot', function(header, body) {
+				console.log('clearSlot', body);
+				
 				factionWidget.clearSlot(body);				
 				delete players[body];
 				
@@ -467,7 +481,7 @@ var dupocracy = new (function() {
 						return true;
 					}).every(function(slot) {
 						return players[slot].ready;
-					}) && Object.keys(players).length > 1)
+					}) && Object.keys(players).length >= 1)
 						GameStates.init.once(function() {
 							connection.broadcast('currentGameState', 'prepare');
 						});
@@ -481,8 +495,8 @@ var dupocracy = new (function() {
 			
 			// debug
 			connection.on(/(.*)/, function(header) {
-				if(arguments[1]!='ping:' && arguments[0]!='pong')
-					console.log("debug:", arguments)
+//				if(arguments[1]!='ping:' && arguments[0]!='pong')
+//					console.log("debug:", arguments)
 			});
 			
 			connection.on(/(.*)/, function() {

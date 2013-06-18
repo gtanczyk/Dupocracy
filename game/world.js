@@ -72,6 +72,8 @@ var world = new (function() {
 		onRemoveListeners = [];
 		
 		visibilityMap = {};
+		
+		onSight.prototype.running = false;
 	}
 	
 	// update
@@ -246,7 +248,8 @@ var world = new (function() {
 	
 	function updateLauncher(launcher, worldTime, dt, missile) {
 		var target = IDmap[launcherTargets[launcher.id]];
-		if(!target && VMath.distance([launcher.x, launcher.y], missile.opts.proj) < 500 || target && launcher.opts.nextLaunchTS < worldTime) {
+		if(!target && VMath.distance([launcher.x, launcher.y], missile.opts.proj) < 500 || 
+			target && launcher.opts.nextLaunchTS < worldTime && VMath.distance([launcher.x, launcher.y], target.opts.proj) < 500) {
 			launcher.opts.nextLaunchTS = worldTime + 2000;
 			launcherTargets[launcher.id] = missile.id;
 			add('interceptor', launcher.x, launcher.y, { sx: launcher.x, sy: launcher.y, tx: missile.x, ty: missile.y, targetID: missile.id, faction: launcher.opts.faction });					
@@ -261,11 +264,11 @@ var world = new (function() {
 			var target = IDmap[interceptor.opts.targetID];
 			var dP = target && target.opts.proj ? [ target.opts.proj[0] - interceptor.x, target.opts.proj[1] - interceptor.y ] :
 							  interceptor.V;			
-			if((target && interceptor.ft < 20 || !target && interceptor.ft < 10) && !interceptor.dead && dP) {
+			if((target && interceptor.ft < 5 || !target && interceptor.ft < 5) && !interceptor.dead && dP) {
 				var distance = VMath.length(dP);
 				var V = interceptor.V = VMath.scale(dP, 1 / distance);
-				interceptor.x = interceptor.x + V[0]*dt/35; 
-				interceptor.y = interceptor.y + V[1]*dt/35;
+				interceptor.x = interceptor.x + V[0]*dt/15; 
+				interceptor.y = interceptor.y + V[1]*dt/15;
 				if(target && distance < 5) {
 					target.dead = true;
 					interceptor.dead = true;
@@ -324,7 +327,7 @@ var world = new (function() {
 	
 	var afterListeners = [];
 	
-	this.after = function(t, fn) {		
+	var after = this.after = function(t, fn) {		
 		if(!lastUpdate)
 			this.run();
 		
@@ -337,7 +340,7 @@ var world = new (function() {
 			}
 		}))
 			afterListeners.push(event);
-	}
+	}.bind(this);
 	
 	// constraint check
 	
@@ -371,11 +374,17 @@ var world = new (function() {
 	// control
 	
 	this.setTarget = function(id, x, y, mode) {
+		if(!IDmap[id])
+			return;
+		
 		IDmap[id].opts.target = [x, y];
 		IDmap[id].opts.targetMode = mode; 
 	}
 	
 	this.switchMode = function(id, mode) {
+		if(!IDmap[id])
+			return;
+		
 		IDmap[id].opts.switchModeTS = worldTime;
 		IDmap[id].opts.switchMode = mode;
 	}
@@ -443,6 +452,7 @@ var world = new (function() {
 	}
 	
 	var remove = this.remove = function(objectID) {
+		var object = IDmap[objectID];
 		if(IDmap[objectID])
 			delete IDmap[objectID];
 		groups.some(function(group) {
@@ -453,7 +463,7 @@ var world = new (function() {
 				}
 			}))				
 				onRemoveListeners.some(function(listener) {
-					listener(objectID);
+					listener(objectID, object.opts.faction);
 				});
 		});
 	}
@@ -476,6 +486,37 @@ var world = new (function() {
 		
 		return result;
 	}
+	
+	// sight listeners
+	
+	var sightListeners = {};
+	
+	var onSight = this.onSight = function(asFaction, fn, filter) {
+		if(!onSight.prototype.running) {
+			after(1000, updateSightListeners);
+			onSight.prototype.running = true;
+		}
+		
+		(sightListeners[asFaction] || (sightListeners[asFaction]=[])).push({ faction: asFaction, fn: fn, filter: filter || {}, mask: {} });
+	}
+	
+	onSight.prototype.running = false;
+	
+	var updateSightListeners = function() {
+		after(1000, updateSightListeners);
+		for(var faction in sightListeners)
+			sightListeners[faction].some(function(listener) {
+				groups.some(function(group) {
+					return group.some(function(object) {
+						if(object.opts.faction!=faction && listener.filter[object.type] && !listener.mask[object.id] && 
+							visibilityCheck(object, visibility[faction], faction)) {
+							listener.mask[object.id] = true;
+							listener.fn(object);
+						}
+					});
+				});
+			});		
+	}
 
 	// rendering
 	
@@ -492,7 +533,7 @@ var world = new (function() {
 		return !faction || (object.opts.faction == faction) || sight.V[oy] && sight.H[ox];
 	}
 	
-	this.render = function() {
+	var updateVisibility = function(visibleFaction) {
 		if(visibleFaction && (new Date().getTime() - (visibility[visibleFaction].lastUpdate||0) > 1000)) {
 			visibility[visibleFaction].lastUpdate = new Date().getTime() ;
 
@@ -522,6 +563,11 @@ var world = new (function() {
 					fill(city);
 			});
 		}
+	}
+	
+	this.render = function() {
+		for(var faction in visibility)
+			updateVisibility(faction)
 		
 		population.some(function(hotspot) {			
 			if(visibleFaction == hotspot.faction)
