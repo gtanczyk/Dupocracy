@@ -34,6 +34,8 @@ function AIRobot(faction, world, connection, prepare, warfare, end) {
 	});
 		
 	warfare.once(function() {
+		console.log('warfare', faction);	
+	
 		Object.keys(myLaunchers).some(function(objectID) {
 			if(myLaunchers[objectID].opts.mode==2) {
 				world.population.some(function(city, idx) {

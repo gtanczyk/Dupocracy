@@ -19,7 +19,7 @@ var world = new (function() {
 	
 	// population hotspots aka cities, players should attack/protect them in order to win 
 	var population = this.population = [
-						{ name: 'Moscow', x: 780, y: 130, r: 20, faction: 'Russia' },
+						{ name: 'Moscow', x: 880, y: 130, r: 20, faction: 'Russia' },
 						{ name: 'Berlin', x: 680, y: 170, r: 20, faction: 'Europe' },
 						{ name: 'Chicago', x: 260, y: 170, r: 20, faction: 'North America' },
 						{ name: 'Cape Town', x: 710, y: 470, r: 20, faction: 'Africa' },
