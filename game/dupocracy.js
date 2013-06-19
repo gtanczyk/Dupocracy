@@ -222,29 +222,17 @@ var dupocracy = new (function() {
 				
 				var robots = {};
 				
-				factions.some(function(faction) {
-					if(!players[faction])
-						connection.broadcast('robot', faction);
+				connection.broadcast('robot', JSON.stringify(factions.filter(function(faction) {
+					return !players[faction]						
+				})));
+				
+				connection.on('robot', function(header, body) {
+					body = JSON.parse(body);
+					body.some(function(faction) { 
+						robots[faction] = new AIRobot(faction, world, connection, GameStates.prepare, GameStates.warfare, GameStates.end);
+						players[faction] = 'robot';
+					});
 				});
-				
-				connection.on('robot', function(header, faction) {
-					robots[faction] = new AIRobot(faction, world, connection, GameStates.prepare, GameStates.warfare, GameStates.end);
-					players[faction] = 'robot';
-				});
-				
-				/** @NOT WORKING :( */
-				
-//				var emptyFactions = factions.filter(function(faction) { return !players[faction] });				
-//				if(emptyFactions.length > 0)
-//					connection.broadcast('robot', JSON.stringify(emptyFactions));				
-//				
-//				connection.on('robot', function(header, body) {
-//					body = JSON.parse(body);
-//					body.some(function(faction) {
-//						robots[faction] = new AIRobot(faction, world, connection, GameStates.prepare, GameStates.warfare, GameStates.end);
-//						players[faction] = 'robot';
-//					});
-//				}, { single: true });
 				
 				Selection.clear();
 				control.then(function(mySlot) {						

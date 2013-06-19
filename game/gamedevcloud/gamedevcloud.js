@@ -88,7 +88,9 @@
 		var listener;
 		listener = this.then(function() {
 			if(listener)
-				this.listeners.splice(this.listeners.indexOf(listener), 1);
+				setTimeout(function() {
+					this.listeners.splice(this.listeners.indexOf(listener), 1);
+				}.bind(this))
 			fn.apply(null, this.result);
 		}.bind(this));
 	}	
